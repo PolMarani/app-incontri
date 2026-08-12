@@ -5,11 +5,11 @@ due persone, negozia un posto neutro, consegna una scheda con luogo, ora, codice
 di riconoscimento e carte per rompere il ghiaccio, e resta accanto a entrambi
 prima, durante e dopo la serata.
 
-Questo repository contiene il **motore**: la logica delle sei fasi, senza
+Questo repository contiene il **motore**: la logica delle sette fasi, senza
 interfaccia e senza database. Nessuna dipendenza esterna, gira con Node 22+.
 
 ```bash
-npm test     # 135 test
+npm test     # 197 test
 npm run demo # flusso completo stampato a schermo
 ```
 
@@ -22,7 +22,7 @@ npm run demo # flusso completo stampato a schermo
 | Posizione neutra | `phase2-location.js` | Tre opzioni pubbliche a meta' strada, presentate in forma anonima; la scelta e' un voto incrociato, non una trattativa. |
 | Icebreaker dedicati | `phase3-eventcard.js` | Carte generate dai profili della coppia, con un filtro che vieta le domande da colloquio. La Fase 5 le gioca al momento giusto invece di lasciarle in una lista. |
 
-## Le sei fasi
+## Le sette fasi
 
 ### Fase 1 — Valutazione del match
 
@@ -41,7 +41,30 @@ Poi il **punteggio pesato**:
 | Valori | 0.12 | i valori dichiarati coincidono |
 | Spark | 0.06 | c'e' circa il 55% di divergenza: abbastanza per discutere |
 
-Sopra l'80% si passa alla Fase 2.
+Sopra l'80% si passa alla Fase 2 — ma la soglia è una **politica di prodotto,
+non una verità**, ed è per questo che è un parametro:
+
+- **Soglia adattiva** (`sogliaAdattiva()`). L'80% fisso è giusto in una città
+  piena e letale al lancio: con pochi iscritti produce zero abbinamenti, e
+  l'utente non vede "nessuno di adatto", vede "non funziona" — e disinstalla
+  prima che il bacino cresca abbastanza da farla funzionare. Con `adattiva: true`
+  la soglia scende quel tanto che basta a proporre N candidati, mai sotto il 65%.
+  I gate restano gate: un match impossibile resta impossibile a qualsiasi soglia.
+- **Affidabilità** (`reputation.js`). In un'app senza chat l'unica cosa che un
+  utente spende è presentarsi, quindi è un ingrediente del matching e non un
+  pannello anti-abuso in fondo alle impostazioni. Non è una settima dimensione
+  ma un **fattore sul totale** (max −15%): non descrive quanto due persone
+  stiano bene insieme, descrive quanto è probabile che l'incontro esista.
+  Disdire per tempo costa pochissimo, disdire all'ultimo costa, non presentarsi
+  costa moltissimo — è l'unico caso in cui qualcuno resta seduto ad aspettare.
+  Chi è nuovo vale 1: il rischio del nuovo arrivato lo assorbe l'app, non
+  l'utente che gli si trova davanti. Sotto 0.35 si esce dal circolo, con un
+  **percorso di rientro** in due incontri, perché un blocco a vita è
+  sproporzionato: la gente attraversa periodi storti.
+- **Priorità di recupero.** Chi è rimasto ad aspettare a un tavolo passa avanti
+  in coda, altrimenti l'app ha estratto solo un costo dalla sua serata.
+- **Niente re-match.** Chi si è già incontrato e non si è ricercato ha già
+  risposto: riproporlo è il modo più rapido di far disinstallare l'app.
 
 Due scelte di calibrazione che vale la pena spiegare:
 
@@ -137,6 +160,20 @@ L'assistente dichiara sempre di essere un'AI, si puo' chiedere un operatore in
 qualsiasi momento, e i numeri di emergenza (112, 1522, Telefono Amico) sono
 sempre a schermo. L'assistente non fa diagnosi e lo dice.
 
+**Copertura onesta.** Promettere "un operatore umano" senza avere nessuno
+dall'altra parte è la bugia più pericolosa che questa app possa dire: qualcuno
+ci conta in un momento brutto e non trova nessuno. `coperturaUmana()` dichiara
+orari e attesa stimata reale; fuori turno lo dice apertamente, promette un
+richiamo entro un'ora e mette in primo piano i numeri che **sono presidiati
+adesso**.
+
+**Conferma incrociata dei segni.** Il codice della Fase 3 impedisce di abbordare
+lo sconosciuto sbagliato, ma non impedisce a un terzo di presentarsi al posto
+del match — un segno lo può esibire chiunque lo conosca. Entrambi confermano di
+aver visto il segno dell'altro: due conferme incrociate valgono
+un'autenticazione reciproca. Se un segno non corrisponde, l'app non chiede
+spiegazioni, apre il supporto e propone l'uscita.
+
 Aprire il supporto **non manda nessun segnale all'altra persona**.
 
 ### Fase 5 — Il terzo compagno
@@ -209,34 +246,89 @@ e rigide:
 4. **Niente punteggi.** Nessun voto alla serata, nessun voto alla persona: un
    numero su una cosa così viene ricordato e nient'altro.
 
+**Scambio di contatti a doppio consenso.** Zero chat *prima* dell'incontro è il
+cuore dell'app e non si tocca. Ma dopo, se la serata è andata bene e uno dei due
+si è dimenticato di chiedere il contatto di persona, senza una valvola
+l'esperienza muore lì. Ognuno decide da solo entro 12 ore e i contatti si
+sbloccano solo a sì reciproco — non è una chat, è una presentazione. Vale la
+stessa regola della Fase 7: **chi ha detto sì non deve mai poter sapere che
+l'altro ha detto no**, e il messaggio di esito è identico che l'altro abbia
+rifiutato o semplicemente non abbia aperto l'app.
+
 `debriefSignalsForMatcher()` restituisce alla Fase 1 quanto la serata si è retta
 da sola, l'equilibrio dei turni e quali categorie di carte hanno funzionato. È
 il primo dato reale su cosa fa davvero parlare due persone — oggi i pesi e le
 famiglie di interessi sono scritti a mano.
 
+### Fase 7 — Momenti di affetto
+
+Durante la serata l'app può proporre un gesto fisico. La scala è di cinque
+gradini e non si salta: **brindisi / cinque → contatto di mano → bacio sulla
+guancia → abbraccio breve → abbraccio di venti secondi**. Ogni gradino richiede
+che il precedente sia stato accettato da entrambi, e l'abbraccio lungo esiste
+solo nell'ultimo quinto della serata, perché è un gesto da commiato.
+
+Il problema è ovvio: se la proposta compare **in mezzo al tavolo**, chi non se
+la sente deve dire di no davanti all'altra persona — e a quel punto non è più
+una scelta libera, è una cosa che si subisce per non fare una figuraccia. Un
+gesto fatto per imbarazzo è l'esatto contrario di un gesto affettuoso.
+
+Quindi vale la stessa forma della Fase 2:
+
+1. la proposta arriva **separatamente** sullo schermo di ciascuno;
+2. serve il **sì di entrambi**, dato senza sapere cosa ha risposto l'altro;
+3. se salta, i due vedono **lo stesso identico messaggio**, che non distingue
+   fra "ha detto no", "non ha guardato il telefono" e "è scaduta".
+   L'ambiguità è voluta: senza, accettare diventerebbe un rischio e non lo
+   farebbe più nessuno;
+4. rifiutare costa **un tocco**, non lascia traccia e non viene chiesto perché.
+
+**Cosa è casuale e cosa no.** È casuale il *quando* — la proposta scatta con una
+probabilità per tick, quindi non è né prevedibile né programmata. Non è mai
+casuale il *se*: clima (serve calore recente, mai dentro un silenzio o una
+serata fredda), tempo trascorso, gradino della scala, budget di 3 proposte,
+intervallo di 18 minuti, e stop dopo due rifiuti.
+
+**Due cancelli in ingresso.** Serve il consenso esplicito di entrambi, *e*
+nessuno dei due deve aver dichiarato di non volere contatto fisico: chi non
+vuole essere toccato non deve nemmeno vedere la proposta, perché doverla
+rifiutare ogni volta è già un piccolo costo che non ha motivo di pagare.
+
+**Un qualsiasi segnale di rischio spegne la funzione per tutta la serata, in
+modo irreversibile.** Se una persona ha avuto anche solo un momento di disagio,
+proporle un contatto fisico più tardi è fuori discussione, per quanto il clima
+possa sembrare migliorato.
+
+Il riepilogo finale contiene solo ciò che è stato condiviso: **i rifiuti non
+risultano da nessuna parte**, come promesso all'utente.
+
+
 ## Struttura
 
 ```
 src/
-  engine.js                 orchestrazione delle sei fasi
+  engine.js                 orchestrazione delle sette fasi
   phase1-compatibility.js   punteggio, gate, soglia
   phase2-location.js        proposta anonima e consenso
   phase3-eventcard.js       scheda, codice di riconoscimento, icebreaker
   phase4-safety.js          conferme, check-in, no-show, supporto
   phase5-companion.js       il terzo compagno: quando ascoltare e quando parlare
-  phase6-debrief.js         debrief privato e segnali di ritorno al matcher
+  phase6-debrief.js         debrief privato, scambio contatti, segnali al matcher
+  phase7-affection.js       momenti di affetto a doppio consenso
+  reputation.js             affidabilita, blocchi e percorso di rientro
   types.js                  tipi del dominio (JSDoc)
   data/
     taxonomy.js             famiglie di interessi e adiacenza fra vibe
     venues.js               catalogo locali verificati (seed su Milano)
     icebreakers.js          template e mazzo base
     companion-lines.js      battute e rilanci del compagno, con le frasi vietate
+    affection-moments.js    la scala dei gesti, dal brindisi all abbraccio lungo
     sample-profiles.js      profili di esempio per demo e test
   util/
     geo.js                  distanze, punto medio, equita', tragitti
     time.js                 finestre orarie e intersezioni
     rng.js                  casualita' deterministica per match
-test/                       135 test, uno per fase piu' end-to-end
+test/                       197 test, uno per fase piu' end-to-end
 demo/run-demo.js
 ```
 
@@ -268,8 +360,16 @@ Il motore e' completo e testato, ma resta fuori tutto cio' che tocca il mondo:
 - **Rete di operatori umani.** La Fase 4 instrada verso un umano ma non lo
   fornisce: serve un team con turni di reperibilita', altrimenti l'escalation
   e' una promessa vuota — ed e' la promessa piu' delicata dell'app.
-- **Anti-abuso.** Il motore si fida dei profili che riceve. Servono verifica
-  d'identita', storico dei no-show, gestione delle segnalazioni e blocco dei
-  re-match fra persone che si sono gia' incontrate.
+- **Verifica d'identita'.** Lo storico dei no-show, le segnalazioni e il blocco
+  dei re-match ci sono (`reputation.js`), ma il motore si fida ancora del fatto
+  che dietro un profilo ci sia quella persona: la verifica documentale e' fuori
+  da qui.
+- **Riconoscimento sul dispositivo.** La Fase 5 consuma `SignalTick` e i test la
+  coprono con tracce simulate, ma separare due voci, contare le risate e
+  rilevare il disagio in tempo reale in un bar rumoroso e' un progetto a se', ed
+  e' li' che sta il rischio tecnico vero.
+- **Isocrone reali.** Il punto a meta' strada e' geometrico: due persone
+  equidistanti in chilometri possono essere a quaranta minuti di differenza in
+  tram. Serve un servizio di routing.
 - **Localizzazione.** Numeri di emergenza, stime di percorrenza e catalogo sono
   tarati sull'Italia.

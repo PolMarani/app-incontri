@@ -149,6 +149,103 @@ export function buildDebrief(sessione, userId) {
 }
 
 /**
+ * Scambio di contatti a doppio consenso.
+ *
+ * Zero chat *prima* dell'incontro e' il cuore dell'app e non si tocca. Ma dopo,
+ * se la serata e' andata bene e uno dei due si e' dimenticato di chiedere il
+ * contatto di persona, l'app oggi non offre niente e l'esperienza muore li'.
+ *
+ * La forma che non tradisce il principio: ognuno decide da solo entro una
+ * finestra breve, e i contatti si sbloccano solo se entrambi hanno detto di si.
+ * Non e' una chat, e' una presentazione reciproca.
+ *
+ * La regola che conta piu' di tutte: **chi ha detto di si non deve mai poter
+ * sapere che l'altro ha detto di no**. Il messaggio di esito e' identico che
+ * l'altro abbia rifiutato o semplicemente non abbia aperto l'app. Senza questa
+ * ambiguita' voluta, dire di si' diventa un rischio e non lo fa piu' nessuno.
+ *
+ * @param {{ matchId: string, partecipanti: string[] }} sessione
+ * @param {{ finestraOre?: number, now?: Date }} [options]
+ */
+export function apriScambioContatti(sessione, options = {}) {
+  const now = options.now ?? new Date();
+  const finestraOre = options.finestraOre ?? 12;
+  return {
+    matchId: sessione.matchId,
+    partecipanti: sessione.partecipanti,
+    scadenza: new Date(now.getTime() + finestraOre * 3600000),
+    scelte: {},
+    contatti: {},
+    domanda:
+      'Ti va di scambiare un contatto? Lo vedrete solo se lo volete tutti e due, ' +
+      'e non saprai mai cosa ha risposto l altra persona.',
+  };
+}
+
+/**
+ * Registra la scelta di un utente. Il contatto viene raccolto subito ma
+ * consegnato solo a consenso doppio.
+ * @param {ReturnType<typeof apriScambioContatti>} scambio
+ * @param {string} userId
+ * @param {{ vuole: boolean, contatto?: string, now?: Date }} params
+ */
+export function rispondiScambioContatti(scambio, userId, { vuole, contatto, now = new Date() }) {
+  if (!scambio.partecipanti.includes(userId)) {
+    throw new Error(`Utente ${userId} non fa parte di questo incontro`);
+  }
+  if (now > scambio.scadenza) {
+    return { ok: false, messaggio: 'La finestra si e chiusa. Va bene cosi.' };
+  }
+  scambio.scelte[userId] = Boolean(vuole);
+  if (vuole && contatto) scambio.contatti[userId] = contatto;
+  return {
+    ok: true,
+    messaggio: vuole
+      ? 'Segnato. Se anche l altra persona vuole, vi arriva il contatto.'
+      : 'Segnato, e non lo sapra nessuno.',
+  };
+}
+
+/**
+ * Chiude lo scambio. Restituisce un esito per utente.
+ * @param {ReturnType<typeof apriScambioContatti>} scambio
+ * @param {{ now?: Date }} [options]
+ */
+export function chiudiScambioContatti(scambio, options = {}) {
+  const now = options.now ?? new Date();
+  const scaduto = now >= scambio.scadenza;
+  const tutti = scambio.partecipanti.every((id) => scambio.scelte[id] !== undefined);
+  if (!scaduto && !tutti) return { stato: 'in_attesa' };
+
+  const reciproco = scambio.partecipanti.every((id) => scambio.scelte[id] === true);
+
+  return {
+    stato: reciproco ? 'scambiato' : 'nessuno_scambio',
+    esitiPerUtente: Object.fromEntries(
+      scambio.partecipanti.map((id) => {
+        const altro = scambio.partecipanti.find((x) => x !== id);
+        return [
+          id,
+          reciproco
+            ? {
+                scambiato: true,
+                contatto: scambio.contatti[altro] ?? null,
+                messaggio: 'Vi siete scelti tutti e due. Da qui in poi non c entriamo piu.',
+              }
+            : {
+                scambiato: false,
+                contatto: null,
+                // Identico per chi ha detto no, per chi ha detto si e per chi
+                // non ha risposto: e' il punto di tutta la funzione.
+                messaggio: 'Non se ne fa niente. Non c e altro da sapere.',
+              },
+        ];
+      }),
+    ),
+  };
+}
+
+/**
  * Segnali aggregati che tornano al matcher di Fase 1.
  *
  * Servono a smettere di indovinare: oggi i pesi e le famiglie di interessi sono

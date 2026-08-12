@@ -2,8 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  apriScambioContatti,
   buildDebrief,
+  chiudiScambioContatti,
   debriefSignalsForMatcher,
+  rispondiScambioContatti,
   VIETATO_NEL_DEBRIEF,
 } from '../src/phase6-debrief.js';
 
@@ -167,4 +170,71 @@ test('l equilibrio vale 1 quando i turni sono pari e 0 quando parla uno solo', (
 
 test('senza compagno acceso non tornano segnali al matcher', () => {
   assert.equal(debriefSignalsForMatcher(chiusa({ attivo: false })).utilizzabile, false);
+});
+
+// --- Scambio di contatti a doppio consenso ----------------------------------
+
+const ORA = new Date('2026-08-14T00:30:00+02:00');
+
+test('lo scambio si sblocca solo se lo vogliono entrambi', () => {
+  const s = apriScambioContatti(chiusa(), { now: ORA });
+  rispondiScambioContatti(s, 'u-aaa', { vuole: true, contatto: 'a@example.com', now: ORA });
+  rispondiScambioContatti(s, 'u-bbb', { vuole: true, contatto: 'b@example.com', now: ORA });
+
+  const esito = chiudiScambioContatti(s, { now: ORA });
+  assert.equal(esito.stato, 'scambiato');
+  assert.equal(esito.esitiPerUtente['u-aaa'].contatto, 'b@example.com');
+  assert.equal(esito.esitiPerUtente['u-bbb'].contatto, 'a@example.com');
+});
+
+test('chi ha detto si non scopre mai che l altro ha detto no', () => {
+  const s = apriScambioContatti(chiusa(), { now: ORA });
+  rispondiScambioContatti(s, 'u-aaa', { vuole: true, contatto: 'a@example.com', now: ORA });
+  rispondiScambioContatti(s, 'u-bbb', { vuole: false, now: ORA });
+
+  const esito = chiudiScambioContatti(s, { now: ORA });
+  assert.equal(esito.stato, 'nessuno_scambio');
+  const perA = esito.esitiPerUtente['u-aaa'];
+  assert.equal(perA.contatto, null);
+  assert.ok(!/rifiut|no |negat/i.test(perA.messaggio));
+  // Identico a quello di chi ha rifiutato: nessuno dei due impara niente.
+  assert.equal(perA.messaggio, esito.esitiPerUtente['u-bbb'].messaggio);
+});
+
+test('rifiuto e silenzio producono lo stesso esito', () => {
+  const rifiutato = apriScambioContatti(chiusa(), { now: ORA });
+  rispondiScambioContatti(rifiutato, 'u-aaa', { vuole: true, now: ORA });
+  rispondiScambioContatti(rifiutato, 'u-bbb', { vuole: false, now: ORA });
+
+  const ignorato = apriScambioContatti(chiusa(), { now: ORA });
+  rispondiScambioContatti(ignorato, 'u-aaa', { vuole: true, now: ORA });
+  const scaduto = new Date(ORA.getTime() + 13 * 3600000);
+
+  assert.equal(
+    chiudiScambioContatti(rifiutato, { now: ORA }).esitiPerUtente['u-aaa'].messaggio,
+    chiudiScambioContatti(ignorato, { now: scaduto }).esitiPerUtente['u-aaa'].messaggio,
+  );
+});
+
+test('finche mancano risposte non si comunica niente', () => {
+  const s = apriScambioContatti(chiusa(), { now: ORA });
+  rispondiScambioContatti(s, 'u-aaa', { vuole: true, now: ORA });
+  assert.equal(chiudiScambioContatti(s, { now: ORA }).stato, 'in_attesa');
+});
+
+test('dopo la scadenza non si accettano risposte', () => {
+  const s = apriScambioContatti(chiusa(), { now: ORA });
+  const tardi = new Date(ORA.getTime() + 13 * 3600000);
+  assert.equal(rispondiScambioContatti(s, 'u-aaa', { vuole: true, now: tardi }).ok, false);
+});
+
+test('un estraneo non partecipa allo scambio', () => {
+  const s = apriScambioContatti(chiusa(), { now: ORA });
+  assert.throws(() => rispondiScambioContatti(s, 'u-zzz', { vuole: true }), /non fa parte/);
+});
+
+test('la domanda dichiara subito la regola del doppio consenso', () => {
+  const s = apriScambioContatti(chiusa(), { now: ORA });
+  assert.match(s.domanda, /solo se lo volete tutti e due/i);
+  assert.match(s.domanda, /non saprai mai/i);
 });

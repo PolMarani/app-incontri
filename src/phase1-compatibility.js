@@ -16,6 +16,12 @@
 import { distanceKm, midpoint, travelZonesOverlap } from './util/geo.js';
 import { overlappingWindows, totalOverlapMinutes } from './util/time.js';
 import { interestSimilarity, vibeSimilarity } from './data/taxonomy.js';
+import {
+  affidabilita,
+  blocchiDiReputazione,
+  fattoreAffidabilita,
+  prioritaDiRecupero,
+} from './reputation.js';
 
 /** Pesi delle dimensioni di compatibilita'. La somma fa 1. */
 export const WEIGHTS = {
@@ -278,6 +284,17 @@ export function evaluateMatch(a, b, options = {}) {
   // --- Gate 4: dealbreaker ---------------------------------------------------
   blockers.push(...dealbreakerBlockers(a, b));
 
+  // --- Gate 5: si sono gia' visti --------------------------------------------
+  // Riproporre la stessa persona e' il modo piu' rapido di far disinstallare
+  // l'app: chi si e' gia' incontrato e non si e' ricercato ha gia' risposto.
+  const giaVisti =
+    (a.incontriPrecedenti ?? []).includes(b.id) ||
+    (b.incontriPrecedenti ?? []).includes(a.id);
+  if (giaVisti) blockers.push('Queste due persone si sono gia incontrate');
+
+  // --- Gate 6: reputazione ---------------------------------------------------
+  blockers.push(...blocchiDiReputazione(a, b));
+
   // --- Punteggio -------------------------------------------------------------
   const interestsA = a.interests ?? [];
   const interestsB = b.interests ?? [];
@@ -307,7 +324,11 @@ export function evaluateMatch(a, b, options = {}) {
     (sum, [key, weight]) => sum + breakdown[key] * weight,
     0,
   );
-  const score = Math.round(raw * 1000) / 10; // una cifra decimale
+  // L'affidabilita' non e' una settima dimensione ma un fattore sul totale:
+  // non descrive quanto due persone stiano bene insieme, descrive quanto e'
+  // probabile che l'incontro esista davvero. Vale 1 per chi non ha storico.
+  const fattore = fattoreAffidabilita(a.storico, b.storico);
+  const score = Math.round(raw * fattore * 1000) / 10; // una cifra decimale
 
   const eligible = blockers.length === 0;
   return {
@@ -315,6 +336,11 @@ export function evaluateMatch(a, b, options = {}) {
     score,
     proceed: eligible && score >= threshold,
     breakdown,
+    affidabilita: {
+      fattore: Math.round(fattore * 1000) / 1000,
+      [a.id]: affidabilita(a.storico).valore,
+      [b.id]: affidabilita(b.storico).valore,
+    },
     blockers,
     sharedInterests,
     complementaryInterests,
@@ -327,20 +353,91 @@ export function evaluateMatch(a, b, options = {}) {
   };
 }
 
+/** Soglia sotto la quale non si scende mai, nemmeno con la citta' vuota. */
+export const SOGLIA_MINIMA = 65;
+
+/**
+ * Soglia adattiva sulla densita' reale dei candidati.
+ *
+ * L'80% fisso e' giusto in una citta' piena e letale al lancio: con pochi
+ * iscritti produce zero abbinamenti e l'app sembra rotta: l'utente non vede
+ * "nessuno di adatto", vede "non funziona", e disinstalla prima che il bacino
+ * cresca abbastanza da farla funzionare.
+ *
+ * Quindi la soglia scende quel tanto che basta a proporre `obiettivo`
+ * candidati, e non oltre. Resta una politica di prodotto, non una verita': e'
+ * per questo che e' un parametro e non un numero sepolto nel codice.
+ *
+ * @param {number[]} punteggi punteggi dei candidati ammissibili
+ * @param {{ ideale?: number, minima?: number, obiettivo?: number }} [options]
+ * @returns {{ soglia: number, adattata: boolean, motivo: string }}
+ */
+export function sogliaAdattiva(punteggi, options = {}) {
+  const ideale = options.ideale ?? DEFAULT_THRESHOLD;
+  const minima = options.minima ?? SOGLIA_MINIMA;
+  const obiettivo = options.obiettivo ?? 2;
+
+  const sopraIdeale = punteggi.filter((p) => p >= ideale).length;
+  if (sopraIdeale >= obiettivo) {
+    return { soglia: ideale, adattata: false, motivo: 'bacino sufficiente' };
+  }
+
+  const ordinati = [...punteggi].sort((x, y) => y - x);
+  const candidato = ordinati[obiettivo - 1];
+  if (candidato === undefined) {
+    return {
+      soglia: ideale,
+      adattata: false,
+      motivo: 'candidati troppo pochi anche abbassando la soglia',
+    };
+  }
+
+  const soglia = Math.max(minima, Math.min(ideale, candidato));
+  return {
+    soglia,
+    adattata: soglia < ideale,
+    motivo:
+      soglia < ideale
+        ? `soglia abbassata da ${ideale}% a ${soglia}% per densita insufficiente`
+        : 'bacino sufficiente',
+  };
+}
+
 /**
  * Ordina i candidati per un utente e restituisce solo quelli che superano la
  * soglia. Usato dal ciclo di matching giornaliero.
+ *
  * @param {import('./types.js').Profile} user
  * @param {import('./types.js').Profile[]} candidates
- * @param {{ threshold?: number }} [options]
- * @returns {Array<{ candidate: import('./types.js').Profile, evaluation: import('./types.js').MatchEvaluation }>}
+ * @param {{ threshold?: number, adattiva?: boolean, obiettivo?: number, sogliaMinima?: number }} [options]
  */
 export function rankCandidates(user, candidates, options = {}) {
-  return candidates
-    .map((candidate) => ({
-      candidate,
-      evaluation: evaluateMatch(user, candidate, options),
+  const valutati = candidates.map((candidate) => ({
+    candidate,
+    evaluation: evaluateMatch(user, candidate, options),
+  }));
+
+  let soglia = options.threshold ?? DEFAULT_THRESHOLD;
+  let adattamento = null;
+  if (options.adattiva) {
+    adattamento = sogliaAdattiva(
+      valutati.filter((v) => v.evaluation.eligible).map((v) => v.evaluation.score),
+      { ideale: soglia, obiettivo: options.obiettivo, minima: options.sogliaMinima },
+    );
+    soglia = adattamento.soglia;
+  }
+
+  const risultati = valutati
+    .filter((entry) => entry.evaluation.eligible && entry.evaluation.score >= soglia)
+    .map((entry) => ({
+      ...entry,
+      // Chi e' rimasto ad aspettare a un tavolo passa avanti: senza questo
+      // l'app estrae solo un costo dalla serata di chi ha subito il buco.
+      priorita: prioritaDiRecupero(user.storico),
+      soglia,
     }))
-    .filter((entry) => entry.evaluation.proceed)
     .sort((x, y) => y.evaluation.score - x.evaluation.score);
+
+  if (adattamento) risultati.adattamento = adattamento;
+  return risultati;
 }

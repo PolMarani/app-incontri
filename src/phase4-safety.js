@@ -46,6 +46,59 @@ const NO_SHOW_CONFIRMED_MIN = 35;
 /** Ping discreto di controllo dopo l'inizio. */
 const WELLNESS_PING_MIN = 30;
 
+/**
+ * Copertura reale del supporto umano.
+ *
+ * Promettere "un operatore umano" senza avere qualcuno dall'altra parte e' la
+ * bugia piu' pericolosa che questa app possa dire: qualcuno ci conta in un
+ * momento brutto e non trova nessuno. Se la copertura non e' 24/7 va detto,
+ * con orari e attesa stimata, e fuori orario va offerto cio' che esiste
+ * davvero - i numeri di emergenza, che sono presidiati sul serio.
+ */
+export const COPERTURA_SUPPORTO = {
+  fasce: [
+    { giorni: ['lun', 'mar', 'mer', 'gio'], dalle: 17, alle: 26, attesaMin: 2 },
+    { giorni: ['ven', 'sab'], dalle: 17, alle: 27, attesaMin: 3 },
+    { giorni: ['dom'], dalle: 11, alle: 24, attesaMin: 3 },
+  ],
+  fuoriOrario: {
+    richiamoEntroMin: 60,
+    messaggio:
+      'A quest ora il team non e in turno. Resto io, e un operatore ti richiama ' +
+      'appena rientra. Se la cosa non puo aspettare usa i numeri qui sotto: ' +
+      'quelli sono presidiati adesso.',
+  },
+};
+
+/**
+ * La copertura umana e' attiva in questo momento?
+ * @param {Date} now
+ * @returns {{ attiva: boolean, attesaMin: number|null, richiamoEntroMin?: number, nota?: string }}
+ */
+export function coperturaUmana(now = new Date()) {
+  const giorni = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+  const oggi = giorni[now.getDay()];
+  const ieri = giorni[(now.getDay() + 6) % 7];
+  const ora = now.getHours() + now.getMinutes() / 60;
+
+  for (const fascia of COPERTURA_SUPPORTO.fasce) {
+    // Le fasce che superano le 24 sconfinano nella notte del giorno dopo:
+    // "venerdi 17-27" copre anche le 2 di notte di sabato.
+    if (fascia.giorni.includes(oggi) && ora >= fascia.dalle && ora < Math.min(24, fascia.alle)) {
+      return { attiva: true, attesaMin: fascia.attesaMin };
+    }
+    if (fascia.giorni.includes(ieri) && fascia.alle > 24 && ora < fascia.alle - 24) {
+      return { attiva: true, attesaMin: fascia.attesaMin };
+    }
+  }
+  return {
+    attiva: false,
+    attesaMin: null,
+    richiamoEntroMin: COPERTURA_SUPPORTO.fuoriOrario.richiamoEntroMin,
+    nota: COPERTURA_SUPPORTO.fuoriOrario.messaggio,
+  };
+}
+
 /** Numeri utili mostrati insieme al supporto. In produzione sono per paese. */
 export const EMERGENCY_RESOURCES = [
   { nome: 'Emergenza (polizia, ambulanza)', numero: '112', quando: 'pericolo immediato' },
@@ -368,6 +421,60 @@ export function checkIn(plan, userId, options = {}) {
 }
 
 /**
+ * Conferma incrociata dell'identita' al tavolo.
+ *
+ * Il codice di riconoscimento della Fase 3 impedisce di abbordare lo
+ * sconosciuto sbagliato, ma non impedisce a un terzo di presentarsi al posto
+ * del match: chi arriva secondo cerca un segno, e un segno lo puo' esibire
+ * chiunque lo conosca. Chiedere a entrambi di confermare di aver visto il segno
+ * dell'altro chiude il giro - due conferme incrociate valgono una
+ * autenticazione reciproca.
+ *
+ * @param {MeetingPlan} plan
+ * @param {string} userId
+ * @param {{ corrisponde: boolean, now?: Date }} params
+ */
+export function confermaSegno(plan, userId, { corrisponde, now = new Date() }) {
+  if (!plan.partecipanti.includes(userId)) {
+    return { ok: false, messaggio: 'Utente non associato a questo incontro' };
+  }
+  plan.segniConfermati ??= {};
+
+  if (!corrisponde) {
+    plan.segniConfermati[userId] = false;
+    plan.timeline.push({
+      at: now,
+      tipo: 'segno_non_corrisponde',
+      dettaglio: 'la persona al tavolo non mostra il segno concordato',
+      utente: userId,
+    });
+    return {
+      ok: true,
+      corrisponde: false,
+      allerta: true,
+      messaggio:
+        'Non forzare la situazione e non chiedere spiegazioni. Resta dove c e ' +
+        'gente, apri il supporto e se vuoi ti facciamo uscire noi.',
+      azioni: ['supporto', 'uscita_assistita', 'avvisa_staff'],
+      motivoSupporto: 'comportamento_da_segnalare',
+    };
+  }
+
+  plan.segniConfermati[userId] = true;
+  plan.timeline.push({ at: now, tipo: 'segno_confermato', dettaglio: 'ok', utente: userId });
+  const entrambi = plan.partecipanti.every((id) => plan.segniConfermati[id] === true);
+  return {
+    ok: true,
+    corrisponde: true,
+    allerta: false,
+    reciproca: entrambi,
+    messaggio: entrambi
+      ? 'Vi siete riconosciuti entrambi. Da qui in poi il telefono serve solo per le carte.'
+      : 'Segnato. Manca la conferma dell altra persona.',
+  };
+}
+
+/**
  * Motivi per cui si apre il supporto, con il canale a cui vengono instradati.
  * `umano: true` significa operatore umano da subito, senza passare dall assistente.
  */
@@ -439,15 +546,27 @@ export function openSupportChannel(plan, { utente, motivo, testoLibero, now = ne
     utente,
   });
 
+  const copertura = coperturaUmana(now);
+  const trasparenza = (() => {
+    if (canale === 'assistente_ai') {
+      return (
+        'Stai parlando con l assistente di BlindStep, non con una persona. ' +
+        'Scrivi "operatore" in qualsiasi momento e ti passo qualcuno in carne e ossa.'
+      );
+    }
+    return copertura.attiva
+      ? `Ti sto passando un operatore del team. Attesa stimata: ${copertura.attesaMin} minuti.`
+      : copertura.nota;
+  })();
+
   return {
     canale,
     priorita: escalationDaTesto ? 'critica' : routing.priorita,
     apertura: SUPPORT_OPENERS[motivo],
-    trasparenza:
-      canale === 'assistente_ai'
-        ? 'Stai parlando con l assistente di BlindStep, non con una persona. ' +
-          'Scrivi "operatore" in qualsiasi momento e ti passo qualcuno in carne e ossa.'
-        : 'Ti sto passando un operatore del team. Resta qui, ci mette meno di un minuto.',
+    // Cosa succede davvero adesso, non cosa succederebbe in un mondo con il
+    // team sempre in turno.
+    copertura,
+    trasparenza,
     puoiSempre: [
       'passare a un operatore umano',
       'chiudere la conversazione senza spiegazioni',

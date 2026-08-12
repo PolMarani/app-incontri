@@ -5,7 +5,9 @@ import {
   advance,
   cancelMeeting,
   checkIn,
+  confermaSegno,
   confirmCheckpoint,
+  coperturaUmana,
   createMeetingPlan,
   openSupportChannel,
   summarizePlan,
@@ -227,4 +229,75 @@ test('il riepilogo racconta lo stato in modo leggibile', () => {
   assert.equal(riepilogo.conferme.length, 3);
   assert.deepEqual(riepilogo.conferme[0].mancano, ['u-bbb']);
   assert.equal(riepilogo.stato, 'programmato');
+});
+
+// --- Conferma incrociata dei segni ------------------------------------------
+
+test('la conferma incrociata dei segni vale come autenticazione reciproca', () => {
+  const plan = confermaTutto(piano());
+  checkIn(plan, 'u-aaa', { now: t(-5) });
+  checkIn(plan, 'u-bbb', { now: t(0) });
+
+  const primo = confermaSegno(plan, 'u-aaa', { corrisponde: true, now: t(1) });
+  assert.equal(primo.reciproca, false);
+  const secondo = confermaSegno(plan, 'u-bbb', { corrisponde: true, now: t(2) });
+  assert.equal(secondo.reciproca, true);
+});
+
+test('un segno che non corrisponde apre un allerta e non chiede spiegazioni', () => {
+  const plan = confermaTutto(piano());
+  checkIn(plan, 'u-aaa', { now: t(-5) });
+  const esito = confermaSegno(plan, 'u-aaa', { corrisponde: false, now: t(3) });
+
+  assert.equal(esito.allerta, true);
+  assert.equal(esito.motivoSupporto, 'comportamento_da_segnalare');
+  assert.match(esito.messaggio, /non forzare la situazione/i);
+  assert.ok(esito.azioni.includes('uscita_assistita'));
+});
+
+test('un estraneo non puo confermare il segno', () => {
+  const plan = piano();
+  assert.equal(confermaSegno(plan, 'u-zzz', { corrisponde: true }).ok, false);
+});
+
+// --- Copertura degli operatori ----------------------------------------------
+
+test('in orario di turno viene dichiarata l attesa reale', () => {
+  const venerdiSera = new Date('2026-08-14T21:00:00+02:00');
+  const copertura = coperturaUmana(venerdiSera);
+  assert.equal(copertura.attiva, true);
+  assert.ok(copertura.attesaMin > 0);
+});
+
+test('la fascia notturna del venerdi copre anche le ore piccole del sabato', () => {
+  assert.equal(coperturaUmana(new Date('2026-08-15T01:30:00+02:00')).attiva, true);
+});
+
+test('fuori orario non si promette un operatore che non c e', () => {
+  const martedMattina = new Date('2026-08-11T09:00:00+02:00');
+  const copertura = coperturaUmana(martedMattina);
+  assert.equal(copertura.attiva, false);
+  assert.ok(copertura.richiamoEntroMin > 0);
+  assert.match(copertura.nota, /non e in turno/i);
+  assert.match(copertura.nota, /presidiati adesso/i);
+});
+
+test('il canale umano dice la verita sui tempi, in turno e fuori', () => {
+  const plan = piano();
+  const inTurno = openSupportChannel(plan, {
+    utente: 'u-aaa',
+    motivo: 'mi_sento_in_pericolo',
+    now: new Date('2026-08-14T21:00:00+02:00'),
+  });
+  assert.match(inTurno.trasparenza, /attesa stimata/i);
+
+  const fuoriTurno = openSupportChannel(plan, {
+    utente: 'u-aaa',
+    motivo: 'mi_sento_in_pericolo',
+    now: new Date('2026-08-11T09:00:00+02:00'),
+  });
+  assert.equal(fuoriTurno.copertura.attiva, false);
+  assert.match(fuoriTurno.trasparenza, /non e in turno/i);
+  // Fuori orario i numeri veri restano comunque in primo piano.
+  assert.ok(fuoriTurno.risorse.some((r) => r.numero === '112'));
 });

@@ -7,6 +7,7 @@
  *   Fase 4  conferme e sicurezza           -> T-24h/T-6h/T-1h, check-in, supporto
  *   Fase 5  il terzo compagno              -> ascolta, rilancia, veglia, scherza
  *   Fase 6  debrief                        -> uno privato a testa, segnali al matcher
+ *   Fase 7  momenti di affetto             -> proposta privata, doppio consenso
  *
  * Le fasi 1-4 portano due persone allo stesso tavolo; le fasi 5-6 stanno con
  * loro mentre ci sono e restituiscono qualcosa quando se ne vanno. Le seconde
@@ -17,7 +18,13 @@
  * diventa un incontro, e va bene cosi'.
  */
 
-import { DEFAULT_THRESHOLD, evaluateMatch, rankCandidates } from './phase1-compatibility.js';
+import {
+  DEFAULT_THRESHOLD,
+  SOGLIA_MINIMA,
+  evaluateMatch,
+  rankCandidates,
+  sogliaAdattiva,
+} from './phase1-compatibility.js';
 import {
   proposeLocations,
   reproposeLocations,
@@ -28,7 +35,9 @@ import {
   advance,
   cancelMeeting,
   checkIn,
+  confermaSegno,
   confirmCheckpoint,
+  coperturaUmana,
   createMeetingPlan,
   openSupportChannel,
   summarizePlan,
@@ -41,11 +50,33 @@ import {
   setMuto,
   sogliaSilenzio,
 } from './phase5-companion.js';
-import { buildDebrief, debriefSignalsForMatcher } from './phase6-debrief.js';
+import {
+  apriScambioContatti,
+  buildDebrief,
+  chiudiScambioContatti,
+  debriefSignalsForMatcher,
+  rispondiScambioContatti,
+} from './phase6-debrief.js';
+import {
+  bloccaPerSicurezza,
+  createAffectionTrack,
+  maybePropose,
+  respond,
+  scadiProposte,
+  summarizeAffection,
+} from './phase7-affection.js';
+import {
+  affidabilita,
+  fattoreAffidabilita,
+  percorsoDiRientro,
+  prioritaDiRecupero,
+} from './reputation.js';
 
 export {
   evaluateMatch,
   rankCandidates,
+  sogliaAdattiva,
+  SOGLIA_MINIMA,
   proposeLocations,
   reproposeLocations,
   resolveLocationConsensus,
@@ -57,6 +88,8 @@ export {
   checkIn,
   advance,
   cancelMeeting,
+  confermaSegno,
+  coperturaUmana,
   openSupportChannel,
   summarizePlan,
   createCompanionSession,
@@ -66,6 +99,19 @@ export {
   sogliaSilenzio,
   buildDebrief,
   debriefSignalsForMatcher,
+  apriScambioContatti,
+  rispondiScambioContatti,
+  chiudiScambioContatti,
+  createAffectionTrack,
+  maybePropose,
+  respond,
+  scadiProposte,
+  bloccaPerSicurezza,
+  summarizeAffection,
+  affidabilita,
+  fattoreAffidabilita,
+  percorsoDiRientro,
+  prioritaDiRecupero,
   DEFAULT_THRESHOLD,
 };
 

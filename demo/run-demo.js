@@ -12,8 +12,12 @@ import {
   checkIn,
   closeCompanionSession,
   confirmCheckpoint,
+  createAffectionTrack,
   createCompanionSession,
   debriefSignalsForMatcher,
+  maybePropose,
+  respond,
+  summarizeAffection,
   evaluateMatch,
   observe,
   openSupportChannel,
@@ -239,6 +243,68 @@ console.log(`  sicurezza: ${allarme.sicurezza.livello} -> ${allarme.sicurezza.mo
 console.log(`  visibile al tavolo: ${allarme.sicurezza.visibileAlTavolo}`);
 console.log(`  ${allarme.sicurezza.azione}`);
 console.log(`  detto ad alta voce: ${allarme.intervento === null ? 'niente' : 'qualcosa'}`);
+
+// ---------------------------------------------------------------------------
+title('FASE 7 - Momenti di affetto');
+
+const spentoAffetto = createAffectionTrack(scheda, {
+  consenso: { [a.id]: true, [b.id]: true },
+  profili: { [b.id]: { contattoFisico: false } },
+});
+console.log(`Se uno dei due non vuole contatto fisico: attivo=${spentoAffetto.attivo}`);
+console.log(`  ${spentoAffetto.motivo}`);
+
+const affetto = createAffectionTrack(scheda, {
+  consenso: { [a.id]: true, [b.id]: true },
+});
+console.log(`\nCon il consenso di entrambi: attivo=${affetto.attivo}`);
+for (const riga of affetto.promessa) console.log(`  - ${riga}`);
+
+/** La serata scorre: si propone solo dove il clima regge. */
+const risposteSimulate = [true, true, false];
+let proposteFatte = 0;
+
+console.log('\nCosa succede durante la serata:');
+for (let sec = 600; sec < 115 * 60; sec += 60) {
+  // Clima freddo nella prima mezz ora, poi la serata si scalda.
+  const minuti = sec / 60;
+  const clima =
+    minuti < 25
+      ? { energia: 0.3, risate: 0, silenzioSec: 8 }
+      : { energia: 0.7, risate: 2, silenzioSec: 1 };
+  const { proposta, motivo } = maybePropose(affetto, { t: sec, rischio: 'nessuno', ...clima });
+  if (!proposta) {
+    if (minuti === 15) console.log(`   15'  (${motivo}: la serata e ancora fredda)`);
+    continue;
+  }
+
+  const rispostaB = risposteSimulate[proposteFatte] ?? true;
+  proposteFatte += 1;
+  console.log(`\n  ${String(proposta.minuto).padStart(3)}'  proposta: ${proposta.schermata.titolo}`);
+  console.log(`        schermo di ${a.id}: "${proposta.schermata.cornice}"`);
+  console.log(`        "${proposta.schermata.istruzione}"`);
+  if (proposta.schermata.nota) console.log(`        nota: ${proposta.schermata.nota}`);
+
+  respond(affetto, proposta.id, a.id, { accetta: true, t: sec + 10 });
+  const esito = respond(affetto, proposta.id, b.id, { accetta: rispostaB, t: sec + 20 });
+  console.log(`        esito -> ${esito.stato}: "${esito.messaggio}"`);
+  if (esito.stato === 'non_riuscita') {
+    console.log(`        (${a.id} aveva accettato, ma non lo sapra mai)`);
+  }
+}
+
+const riepilogoAffetto = summarizeAffection(affetto);
+console.log('\nCosa resta agli atti:');
+console.log(
+  `  momenti condivisi: ${riepilogoAffetto.momentiCondivisi.map((m) => m.titolo).join(', ') || 'nessuno'}`,
+);
+console.log(`  rifiuti registrati: ${riepilogoAffetto.rifiutiRegistrati}`);
+
+console.log('\nCon un segnale di rischio la funzione si chiude per la serata:');
+const conRischio = createAffectionTrack(scheda, { consenso: { [a.id]: true, [b.id]: true } });
+maybePropose(conRischio, { t: 1800, rischio: 'disagio', energia: 0.8, risate: 3 });
+const dopo = maybePropose(conRischio, { t: 3600, rischio: 'nessuno', energia: 0.9, risate: 5 });
+console.log(`  clima ottimo mezz ora dopo -> ${dopo.motivo}`);
 
 // ---------------------------------------------------------------------------
 title('FASE 6 - Debrief privato, uno per ciascuno');
