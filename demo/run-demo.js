@@ -10,25 +10,18 @@ import {
   autoRanking,
   buildDebrief,
   checkIn,
-  closeCompanionSession,
+  chiudiGioco,
+  closeEvening,
   confirmCheckpoint,
-  completeGame,
-  createAffectionTrack,
-  createAttentionBudget,
-  createCompanionSession,
-  createGameTrack,
-  maybeProposeGame,
-  respondGame,
-  riepilogoAttenzione,
+  createEvening,
   debriefSignalsForMatcher,
-  maybePropose,
-  respond,
-  summarizeAffection,
   evaluateMatch,
-  observe,
   openSupportChannel,
+  rispondiAffetto,
+  rispondiGioco,
   runMatchFlow,
   summarizePlan,
+  tickEvening,
 } from '../src/engine.js';
 import { sampleProfile } from '../src/data/sample-profiles.js';
 
@@ -194,188 +187,106 @@ console.log('  ' + JSON.stringify(summarizePlan(plan).conferme.map((c) => c.stat
 console.log(`  stato incontro: ${summarizePlan(plan).stato}`);
 
 // ---------------------------------------------------------------------------
-title('FASE 5 - Il terzo compagno durante la serata');
+title('FASI 5, 7, 8 - La serata, un ciclo solo');
 
-const spento = createCompanionSession(scheda, { consenso: { [a.id]: true } });
-console.log(`Con il consenso di uno solo: attivo=${spento.attivo}`);
-console.log(`  ${spento.motivo}`);
-
-const compagno = createCompanionSession(scheda, {
-  consenso: { [a.id]: true, [b.id]: true },
+console.log('Consensi separati: si puo accettare il compagno e rifiutare il resto.');
+const parziale = createEvening(scheda, {
+  consensi: { compagno: { [a.id]: true, [b.id]: true } },
 });
-console.log(`\nCon il consenso di entrambi: attivo=${compagno.attivo}, modo=${compagno.modo}`);
-console.log(`  apertura: "${compagno.apertura}"`);
-for (const garanzia of compagno.garanzie) console.log(`  - ${garanzia}`);
+console.log(`  compagno=${parziale.attive.compagno} affetto=${parziale.attive.affetto} giochi=${parziale.attive.giochi}`);
+
+const serata = createEvening(scheda, {
+  consensi: {
+    compagno: { [a.id]: true, [b.id]: true },
+    affetto: { [a.id]: true, [b.id]: true },
+    giochi: { [a.id]: true, [b.id]: true },
+  },
+});
+console.log(`\nSerata avviata: "${serata.apertura}"`);
 
 /**
- * Traccia simulata della serata. Ogni riga e' un tick di segnali derivati
- * (mai audio): imbarazzo iniziale, la conversazione che parte, uno sbilancio
- * dei turni, un momento allegro e il calo finale.
+ * Clima simulato: imbarazzo iniziale, la conversazione che parte, un calo a
+ * meta, e la ripresa finale.
  */
-const traccia = [
-  { t: 120, silenzioSec: 11, energia: 0.2, quotaParlato: 0.5, risate: 0 },
-  { t: 240, silenzioSec: 2, energia: 0.5, quotaParlato: 0.55, risate: 1, domande: 2 },
-  { t: 900, silenzioSec: 1, energia: 0.8, quotaParlato: 0.6, risate: 2, domande: 3 },
-  { t: 1500, silenzioSec: 1, energia: 0.55, quotaParlato: 0.86, risate: 1 },
-  { t: 1800, silenzioSec: 2, energia: 0.5, quotaParlato: 0.88, risate: 0 },
-  { t: 2100, silenzioSec: 3, energia: 0.5, quotaParlato: 0.87, risate: 0 },
-  { t: 2400, silenzioSec: 1, energia: 0.6, quotaParlato: 0.6, risate: 3, domande: 2 },
-  { t: 3000, silenzioSec: 1, energia: 0.65, quotaParlato: 0.5, risate: 2, domande: 4 },
-  { t: 3600, silenzioSec: 14, energia: 0.35, quotaParlato: 0.5, risate: 0 },
-  { t: 4200, silenzioSec: 4, energia: 0.5, quotaParlato: 0.5, risate: 1, domande: 1 },
-  { t: 5700, silenzioSec: 30, energia: 0.1, quotaParlato: 0.5, risate: 0 },
-];
-
-console.log('\nCosa fa, minuto per minuto:');
-for (const t of traccia) {
-  const { intervento, stato } = observe(compagno, { rischio: 'nessuno', ...t });
-  const minuto = String(Math.round(t.t / 60)).padStart(3);
-  if (intervento) {
-    console.log(`  ${minuto}'  [${intervento.tipo}] ${intervento.frase}`);
-    if (intervento.carta) console.log(`        -> ${intervento.carta.testo}`);
-  } else {
-    console.log(`  ${minuto}'  (${stato})`);
-  }
+function clima(minuti) {
+  if (minuti < 8) return { energia: 0.2, silenzioSec: 12, risate: 0 };
+  if (minuti < 30) return { energia: 0.75, silenzioSec: 1, risate: 2, domande: 3 };
+  if (minuti < 55) return { energia: 0.35, silenzioSec: 20, risate: 0 };
+  if (minuti < 85) return { energia: 0.62, silenzioSec: 3, risate: 2, domande: 2 };
+  return { energia: 0.25, silenzioSec: 25, risate: 0 };
 }
 
-console.log('\nUno dei due chiede una carta:');
-const richiesta = observe(compagno, { t: 4500, richiestaDa: b.id, rischio: 'nessuno' });
-console.log(`  [${richiesta.intervento.tipo}] ${richiesta.intervento.frase}`);
-console.log(`        -> ${richiesta.intervento.carta.testo}`);
-
-console.log('\nSegnale di allarme dal microfono:');
-const allarme = observe(compagno, { t: 4800, rischio: 'allarme', energia: 0.4 });
-console.log(`  sicurezza: ${allarme.sicurezza.livello} -> ${allarme.sicurezza.motivoSupporto}`);
-console.log(`  visibile al tavolo: ${allarme.sicurezza.visibileAlTavolo}`);
-console.log(`  ${allarme.sicurezza.azione}`);
-console.log(`  detto ad alta voce: ${allarme.intervento === null ? 'niente' : 'qualcosa'}`);
-
-// ---------------------------------------------------------------------------
-title('FASE 7 - Momenti di affetto');
-
-const spentoAffetto = createAffectionTrack(scheda, {
-  consenso: { [a.id]: true, [b.id]: true },
-  profili: { [b.id]: { contattoFisico: false } },
-});
-console.log(`Se uno dei due non vuole contatto fisico: attivo=${spentoAffetto.attivo}`);
-console.log(`  ${spentoAffetto.motivo}`);
-
-const affetto = createAffectionTrack(scheda, {
-  consenso: { [a.id]: true, [b.id]: true },
-});
-console.log(`\nCon il consenso di entrambi: attivo=${affetto.attivo}`);
-for (const riga of affetto.promessa) console.log(`  - ${riga}`);
-
-/** La serata scorre: si propone solo dove il clima regge. */
-const risposteSimulate = [true, true, false];
-let proposteFatte = 0;
-
-console.log('\nCosa succede durante la serata:');
-for (let sec = 600; sec < 115 * 60; sec += 60) {
-  // Clima freddo nella prima mezz ora, poi la serata si scalda.
+console.log('\nCosa arriva al tavolo, e da quale fase:');
+const aperte = [];
+for (let sec = 120; sec < 115 * 60; sec += 60) {
   const minuti = sec / 60;
-  const clima =
-    minuti < 25
-      ? { energia: 0.3, risate: 0, silenzioSec: 8 }
-      : { energia: 0.7, risate: 2, silenzioSec: 1 };
-  const { proposta, motivo } = maybePropose(affetto, { t: sec, rischio: 'nessuno', ...clima });
-  if (!proposta) {
-    if (minuti === 15) console.log(`   15'  (${motivo}: la serata e ancora fredda)`);
-    continue;
-  }
-
-  const rispostaB = risposteSimulate[proposteFatte] ?? true;
-  proposteFatte += 1;
-  console.log(`\n  ${String(proposta.minuto).padStart(3)}'  proposta: ${proposta.schermata.titolo}`);
-  console.log(`        schermo di ${a.id}: "${proposta.schermata.cornice}"`);
-  console.log(`        "${proposta.schermata.istruzione}"`);
-  if (proposta.schermata.nota) console.log(`        nota: ${proposta.schermata.nota}`);
-
-  respond(affetto, proposta.id, a.id, { accetta: true, t: sec + 10 });
-  const esito = respond(affetto, proposta.id, b.id, { accetta: rispostaB, t: sec + 20 });
-  console.log(`        esito -> ${esito.stato}: "${esito.messaggio}"`);
-  if (esito.stato === 'non_riuscita') {
-    console.log(`        (${a.id} aveva accettato, ma non lo sapra mai)`);
-  }
-}
-
-const riepilogoAffetto = summarizeAffection(affetto);
-console.log('\nCosa resta agli atti:');
-console.log(
-  `  momenti condivisi: ${riepilogoAffetto.momentiCondivisi.map((m) => m.titolo).join(', ') || 'nessuno'}`,
-);
-console.log(`  rifiuti registrati: ${riepilogoAffetto.rifiutiRegistrati}`);
-
-console.log('\nCon un segnale di rischio la funzione si chiude per la serata:');
-const conRischio = createAffectionTrack(scheda, { consenso: { [a.id]: true, [b.id]: true } });
-maybePropose(conRischio, { t: 1800, rischio: 'disagio', energia: 0.8, risate: 3 });
-const dopo = maybePropose(conRischio, { t: 3600, rischio: 'nessuno', energia: 0.9, risate: 5 });
-console.log(`  clima ottimo mezz ora dopo -> ${dopo.motivo}`);
-
-// ---------------------------------------------------------------------------
-title('FASE 8 - Giochi a schermo condiviso');
-
-const attenzione = createAttentionBudget({ durataPrevistaMin: scheda.quando.durata_minuti });
-const giochi = createGameTrack(scheda, {
-  consenso: { [a.id]: true, [b.id]: true },
-  attenzione,
-});
-
-console.log(`Catalogo: ${giochi.catalogo.map((g) => g.titolo).join(', ')}`);
-console.log('\nDurante la serata:');
-
-for (let sec = 900; sec < 115 * 60; sec += 60) {
-  const minuti = sec / 60;
-  // La conversazione gira nella prima mezz ora, poi si appiattisce.
-  const energia = minuti < 30 ? 0.85 : 0.4;
-  const { proposta, motivo } = maybeProposeGame(giochi, {
+  const { azioni, sicurezza } = tickEvening(serata, {
     t: sec,
-    energia,
-    silenzioSec: energia > 0.6 ? 1 : 6,
+    quotaParlato: 0.55,
     rischio: 'nessuno',
+    ...clima(minuti),
   });
-  if (!proposta) {
-    if (minuti === 20) console.log(`   20'  (${motivo})`);
-    continue;
-  }
+  if (sicurezza) continue;
 
-  console.log(`\n  ${String(proposta.minuto).padStart(3)}'  "${proposta.schermata.cornice}"`);
-  console.log(`        ${proposta.schermata.titolo} - ${proposta.schermata.durataMin} minuti`);
-  console.log(`        ${proposta.schermata.premessa}`);
-
-  respondGame(giochi, proposta.id, a.id, { accetta: true, t: sec });
-  const partita = respondGame(giochi, proposta.id, b.id, { accetta: true, t: sec }).partita;
-  console.log(`        schermo: ${partita.schermo}`);
-  for (const [i, regola] of partita.regole.entries()) {
-    console.log(`          ${i + 1}. ${regola}`);
-  }
-  if (partita.consegna) console.log(`        consegna: "${partita.consegna}"`);
-  if (partita.righe) {
-    for (const riga of partita.righe) {
-      console.log(`          ${riga.domanda}`);
-      console.log(`             ${riga.sinistra}  <---->  ${riga.destra}`);
-    }
-  }
-  if (partita.giocoId === 'infiltrato') {
-    for (const id of [a.id, b.id]) {
-      console.log(`        schermo di ${id}: ${partita.perTe(id).istruzione}`);
+  for (const azione of azioni) {
+    const m = String(Math.round(minuti)).padStart(3);
+    if (azione.fonte === 'compagno') {
+      console.log(`  ${m}'  [compagno/${azione.tipo}] ${azione.frase}`);
+      if (azione.carta) console.log(`         -> ${azione.carta.testo}`);
+    } else if (azione.fonte === 'affetto') {
+      console.log(`  ${m}'  [affetto] ${azione.proposta.schermata.titolo}`);
+      console.log(`         "${azione.proposta.schermata.istruzione}"`);
+      aperte.push(azione);
+    } else if (azione.fonte === 'giochi') {
+      console.log(`  ${m}'  [gioco] ${azione.proposta.schermata.titolo} (${azione.proposta.schermata.durataMin} min)`);
+      console.log(`         ${azione.proposta.schermata.premessa}`);
+      aperte.push(azione);
     }
   }
 
-  const fine = completeGame(giochi, proposta.id, { t: sec + partita.durataMin * 60 });
-  console.log(`        fine -> ${fine.chiusura}`);
-  if (fine.soluzione) console.log(`        soluzione: infiltrato = ${fine.soluzione.infiltrato ?? 'nessuno'}`);
+  // Rispondono subito: entrambi si, tranne al primo gioco.
+  for (const azione of aperte.splice(0)) {
+    const t = sec + 20;
+    if (azione.fonte === 'affetto') {
+      rispondiAffetto(serata, azione.proposta.id, a.id, { accetta: true, t });
+      const esito = rispondiAffetto(serata, azione.proposta.id, b.id, { accetta: true, t });
+      console.log(`         esito -> ${esito.stato}`);
+    } else {
+      rispondiGioco(serata, azione.proposta.id, a.id, { accetta: true, t });
+      rispondiGioco(serata, azione.proposta.id, b.id, { accetta: true, t });
+      const fine = chiudiGioco(serata, azione.proposta.id, { t: t + 300 });
+      console.log(`         fine -> ${fine.chiusura}`);
+    }
+  }
 }
 
-console.log('\nQuanto si e fatto sentire il telefono in tutta la serata:');
-const att = riepilogoAttenzione(attenzione);
-console.log(`  interruzioni: ${att.interruzioni}, quota di budget usata: ${att.quotaUsata}`);
-console.log(`  per fase: ${JSON.stringify(att.perFase)}`);
+const rinunce = serata.log.filter((x) => x.tipo === 'rinunciato').length;
+console.log(`\nVolte in cui il compagno ha rinunciato perche il telefono era occupato: ${rinunce}`);
+
+console.log('\nSicurezza: un allarme spegne affetto e giochi per il resto della serata');
+const conRischio = createEvening(scheda, {
+  consensi: {
+    compagno: { [a.id]: true, [b.id]: true },
+    affetto: { [a.id]: true, [b.id]: true },
+    giochi: { [a.id]: true, [b.id]: true },
+  },
+});
+const allarme = tickEvening(conRischio, { t: 1200, rischio: 'allarme', energia: 0.5 });
+console.log(`  sicurezza: ${allarme.sicurezza.motivoSupporto}, visibile al tavolo: ${allarme.sicurezza.visibileAlTavolo}`);
+console.log(`  affetto bloccato: ${conRischio.affetto.bloccatoPerSicurezza}, giochi bloccati: ${conRischio.giochi.bloccatoPerSicurezza}`);
+
+const chiusa = closeEvening(serata, { durataEffettivaMin: 95 });
+console.log('\nA fine serata:');
+console.log(`  interruzioni totali: ${chiusa.attenzione.interruzioni} (budget ${chiusa.attenzione.pesoSpeso}/${chiusa.attenzione.maxPeso})`);
+console.log(`  per fase: ${JSON.stringify(chiusa.attenzione.perFase)}`);
+console.log(`  momenti condivisi: ${chiusa.affetto.momentiCondivisi.map((m) => m.titolo).join(', ') || 'nessuno'}`);
+console.log(`  giochi: ${chiusa.giochi.giocati.map((g) => g.titolo).join(', ') || 'nessuno'}`);
+console.log(`  autonomia della coppia: ${chiusa.autonomia.toFixed(2)}`);
 
 // ---------------------------------------------------------------------------
 title('FASE 6 - Debrief privato, uno per ciascuno');
 
-const sessioneChiusa = closeCompanionSession(compagno, { durataEffettivaMin: 95 });
+const sessioneChiusa = chiusa.sessione;
 console.log('Metriche della serata (nessun contenuto, solo numeri):');
 for (const [chiave, valore] of Object.entries(sessioneChiusa.metriche)) {
   console.log(`  ${chiave}: ${typeof valore === 'number' ? valore.toFixed(2) : valore}`);

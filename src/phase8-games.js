@@ -22,16 +22,15 @@
  *  - **piu' la serata avanza, piu' si preferiscono i giochi `solo_avvio`**,
  *    quelli in cui l'app da' una regola e poi il telefono torna sul tavolo.
  *
- * Tutte le richieste passano dal budget di attenzione condiviso (`attention.js`),
- * cosi' un gioco non arriva mai subito dopo una proposta di affetto o una carta.
+ * Questo modulo decide solo se un gioco *avrebbe senso* adesso. Se poi il
+ * telefono possa effettivamente parlare lo stabilisce il runtime della serata
+ * (`evening.js`) consultando il budget di attenzione condiviso: i moduli
+ * propongono, l'orchestratore arbitra. Tenere le due cose separate evita che
+ * ogni fase si costruisca il proprio arbitro e che il tetto sulle interruzioni
+ * valga solo per alcune.
  */
 
 import { createRng, pick, shuffle } from './util/rng.js';
-import {
-  attenzioneDisponibile,
-  richiediAttenzione,
-  rilasciaAttenzione,
-} from './attention.js';
 import { GIOCHI, GIOCO_NON_FATTO, PROPOSTA_GIOCO } from './data/games.js';
 
 const MAX_GIOCHI = 2;
@@ -45,7 +44,7 @@ const PROBABILITA_PER_TICK = 0.2;
 /**
  * Crea la traccia dei giochi per una serata.
  * @param {{ matchId: string, partecipanti: string[], quando: { durata_minuti: number } }} eventCard
- * @param {{ consenso?: Record<string, boolean>, seed?: string, attenzione?: object }} [options]
+ * @param {{ consenso?: Record<string, boolean>, seed?: string }} [options]
  */
 export function createGameTrack(eventCard, options = {}) {
   const consenso = options.consenso ?? {};
@@ -60,7 +59,6 @@ export function createGameTrack(eventCard, options = {}) {
     giocati: [],
     ultimaPropostaSec: -Infinity,
     bloccatoPerSicurezza: false,
-    attenzione: options.attenzione ?? null,
     rng: createRng(options.seed ?? `${eventCard.matchId}|giochi`),
   };
 
@@ -196,25 +194,8 @@ export function maybeProposeGame(track, tick) {
   const gioco = scegliGioco(track, minuti);
   if (!gioco) return { proposta: null, motivo: 'nessun_gioco_adatto' };
 
-  // Prima si verifica il turno senza prenderlo: se un'altra fase sta gia'
-  // parlando la risposta e' no comunque, e il motivo deve dirlo invece di un
-  // generico "non stavolta".
-  if (track.attenzione) {
-    const check = attenzioneDisponibile(track.attenzione, {
-      fase: 'giochi',
-      tipo: 'gioco',
-      t: tick.t,
-    });
-    if (!check.disponibile) return { proposta: null, motivo: check.motivo };
-  }
-
   // Il caso decide l'istante, non l'opportunita'.
   if (track.rng() > PROBABILITA_PER_TICK) return { proposta: null, motivo: 'non_stavolta' };
-
-  // Solo adesso il turno viene preso davvero.
-  if (track.attenzione) {
-    richiediAttenzione(track.attenzione, { fase: 'giochi', tipo: 'gioco', t: tick.t });
-  }
 
   const proposta = {
     id: `game-${track.proposte.length + 1}`,
@@ -262,9 +243,6 @@ export function respondGame(track, propostaId, userId, { accetta, t }) {
   // partita e' gia' saltata tiene il telefono acceso per niente.
   if (!accetta) {
     proposta.stato = 'rifiutata';
-    if (track.attenzione) {
-      rilasciaAttenzione(track.attenzione, { fase: 'giochi', t: t ?? proposta.t });
-    }
     return { stato: 'rifiutata', messaggio: GIOCO_NON_FATTO };
   }
 
@@ -308,10 +286,6 @@ export function completeGame(track, propostaId, options = {}) {
   proposta.stato = options.abbandonato ? 'abbandonato' : 'finito';
   track.giocati.push({ id: gioco.id, titolo: gioco.titolo, abbandonato: Boolean(options.abbandonato) });
 
-  if (track.attenzione) {
-    rilasciaAttenzione(track.attenzione, { fase: 'giochi', t: options.t ?? proposta.t });
-  }
-
   return {
     ok: true,
     // Nessun punteggio, nessun vincitore: si esce con un argomento in mano.
@@ -331,7 +305,6 @@ export function scadiProposteGioco(track, t) {
   for (const proposta of track.proposte) {
     if (proposta.stato === 'aperta' && t > proposta.scadeA) {
       proposta.stato = 'scaduta';
-      if (track.attenzione) rilasciaAttenzione(track.attenzione, { fase: 'giochi', t });
       scadute.push(proposta.id);
     }
   }

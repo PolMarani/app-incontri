@@ -128,6 +128,23 @@ export function nextOccurrence(from, day, startMin) {
 }
 
 /**
+ * Data in forma AAAA-MM-GG nel fuso locale.
+ *
+ * `toISOString().slice(0, 10)` sembra equivalente e non lo e': lavora in UTC.
+ * Un incontro che comincia sabato alle 00:30 a Milano e' venerdi' alle 22:30
+ * in UTC, quindi la scheda direbbe "Sabato 14 agosto" con il 14 che e'
+ * venerdi'. Le fasce che scavalcano la mezzanotte rendono il caso reale, non
+ * teorico.
+ * @param {Date} date
+ * @returns {string}
+ */
+export function toLocalDate(date) {
+  const mese = String(date.getMonth() + 1).padStart(2, '0');
+  const giorno = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${mese}-${giorno}`;
+}
+
+/**
  * Nome esteso del giorno, per la scheda dell'evento.
  * @param {string} day
  * @returns {string}

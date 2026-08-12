@@ -218,3 +218,35 @@ test('un estraneo non puo leggere la scheda', () => {
   const { card } = scheda();
   assert.throws(() => eventCardFor(card, 'u-nessuno'), /non fa parte/);
 });
+
+test('la data della scheda e quella locale, anche a cavallo della mezzanotte', () => {
+  // Un incontro che comincia sabato alle 00:30 e venerdi 22:30 in UTC: la
+  // scheda deve dire sabato, con la data di sabato.
+  const notturno = {
+    optionId: 'opt-1',
+    venue: {
+      name: 'Locale notturno',
+      address: 'Via Notte 1',
+      location: { lat: 45.46, lon: 9.19 },
+      vibes: ['bar_serale'],
+      features: { wheelchairAccess: true, transitNearby: true, noiseLevel: 'alto' },
+      atmosphere: 'aperto tardi',
+      recognitionSpots: ['il bancone'],
+    },
+    slot: { day: 'sab', startMin: 30, endMin: 150 },
+    vibe: 'bar_serale',
+    travelA: { minuti: 12, modo: 'con i mezzi' },
+    travelB: { minuti: 14, modo: 'con i mezzi' },
+  };
+  const a = sampleProfile('u-7f3a');
+  const b = sampleProfile('u-91cd');
+  const card = buildEventCard(a, b, evaluateMatch(a, b), notturno, { now: NOW });
+
+  const inizio = new Date(card.quando.inizio);
+  const giorni = ['Domenica', 'Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato'];
+  assert.equal(card.quando.giorno, 'Sabato');
+  assert.equal(giorni[inizio.getDay()], card.quando.giorno);
+  // La data stampata deve coincidere con il giorno indicato.
+  const atteso = `${inizio.getFullYear()}-${String(inizio.getMonth() + 1).padStart(2, '0')}-${String(inizio.getDate()).padStart(2, '0')}`;
+  assert.equal(card.quando.data, atteso);
+});

@@ -347,12 +347,8 @@ test('il budget della serata si esaurisce', () => {
   assert.equal(richiediAttenzione(budget, { fase: 'giochi', tipo: 'gioco', t: 99999 }).concesso, false);
 });
 
-test('i giochi rispettano il budget condiviso', () => {
-  const budget = createAttentionBudget({ durataPrevistaMin: 120 });
-  const t = traccia({ attenzione: budget });
-  richiediAttenzione(budget, { fase: 'compagno', tipo: 'carta', t: 2400 });
-  assert.match(maybeProposeGame(t, piatto({ t: 2410 })).motivo, /occupato/);
-});
+// L'arbitrato fra le fasi non sta piu' qui ma nel runtime della serata:
+// i moduli propongono, `evening.js` decide. Vedi test/evening.test.js.
 
 test('il riepilogo dell attenzione dice quanto il telefono si e fatto sentire', () => {
   const budget = createAttentionBudget({ durataPrevistaMin: 120 });

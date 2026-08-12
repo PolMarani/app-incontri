@@ -29,13 +29,34 @@ export function hashString(str) {
  */
 export function createRng(seed) {
   let state = (typeof seed === 'number' ? seed : hashString(String(seed))) >>> 0;
-  return function next() {
+  function next() {
     state = (state + 0x6d2b79f5) >>> 0;
     let t = state;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  }
+  // Lo stato e' leggibile e ripristinabile: una serata in corso deve poter
+  // sopravvivere al riavvio del processo, e senza questo il generatore sarebbe
+  // l'unico pezzo di stato impossibile da salvare.
+  Object.defineProperty(next, 'state', {
+    get: () => state,
+    set: (valore) => {
+      state = valore >>> 0;
+    },
+  });
+  return next;
+}
+
+/**
+ * Ricrea un generatore da uno stato salvato.
+ * @param {number} state
+ * @returns {() => number}
+ */
+export function restoreRng(state) {
+  const rng = createRng(0);
+  rng.state = state;
+  return rng;
 }
 
 /**

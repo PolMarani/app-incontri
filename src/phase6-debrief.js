@@ -149,6 +149,43 @@ export function buildDebrief(sessione, userId) {
 }
 
 /**
+ * Trasforma i segnali di una o piu' serate in pesi per categoria di carta,
+ * pronti da passare a `generateIcebreakers`.
+ *
+ * Chiude l'anello: finora la Fase 6 misurava quali carte accendevano la
+ * conversazione e quel dato non arrivava da nessuna parte. Un peso sopra 1
+ * significa "questa categoria ha funzionato con questa persona", sotto 1 il
+ * contrario. Il valore resta vicino a 1 di proposito: dopo due serate non si sa
+ * ancora niente, e un modello che si convince troppo in fretta smette di
+ * proporre le cose che non ha ancora provato.
+ *
+ * @param {Array<ReturnType<typeof debriefSignalsForMatcher>>} segnali
+ * @returns {Record<string, number>}
+ */
+export function preferenzeDaSegnali(segnali) {
+  /** @type {Record<string, { somma: number, giocate: number }>} */
+  const accumulo = {};
+  for (const s of segnali) {
+    if (!s?.utilizzabile) continue;
+    for (const c of s.categorieEfficaci ?? []) {
+      const voce = (accumulo[c.categoria] ??= { somma: 0, giocate: 0 });
+      voce.somma += c.efficacia * c.giocate;
+      voce.giocate += c.giocate;
+    }
+  }
+
+  /** @type {Record<string, number>} */
+  const pesi = {};
+  for (const [categoria, v] of Object.entries(accumulo)) {
+    const media = v.somma / Math.max(1, v.giocate);
+    // Fiducia crescente con le prove: una sola carta giocata sposta pochissimo.
+    const fiducia = Math.min(1, v.giocate / 6);
+    pesi[categoria] = Math.round((1 + (media - 0.5) * 0.6 * fiducia) * 100) / 100;
+  }
+  return pesi;
+}
+
+/**
  * Scambio di contatti a doppio consenso.
  *
  * Zero chat *prima* dell'incontro e' il cuore dell'app e non si tocca. Ma dopo,

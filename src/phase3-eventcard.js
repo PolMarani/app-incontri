@@ -11,7 +11,7 @@
  */
 
 import { createRng, pick, shuffle } from './util/rng.js';
-import { dayLabel, nextOccurrence, toHHMM } from './util/time.js';
+import { dayLabel, nextOccurrence, toHHMM, toLocalDate } from './util/time.js';
 import { VIBE_LABELS, familiesOf, interestLabel } from './data/taxonomy.js';
 import {
   BANNED_PATTERNS,
@@ -169,7 +169,13 @@ function buildPersonalizedPool(a, b, evaluation, context, rng) {
  * @param {import('./types.js').Profile} a
  * @param {import('./types.js').Profile} b
  * @param {import('./types.js').MatchEvaluation} evaluation
- * @param {{ vibe?: string|null, seed?: string, deckSize?: number, highlighted?: number }} [context]
+ * Se arrivano le preferenze apprese dalle serate precedenti
+ * (`preferenzeCategorie`, prodotte dalla Fase 6), le categorie che hanno
+ * funzionato davvero salgono in cima. E' l'unico punto del sistema in cui i
+ * pesi smettono di essere quelli che ho scritto a mano e diventano quelli che
+ * si sono visti al tavolo.
+ *
+ * @param {{ vibe?: string|null, seed?: string, deckSize?: number, highlighted?: number, preferenzeCategorie?: Record<string, number> }} [context]
  * @returns {{ inEvidenza: any[], mazzo: any[], perCategoria: Record<string, number> }}
  */
 export function generateIcebreakers(a, b, evaluation, context = {}) {
@@ -189,6 +195,17 @@ export function generateIcebreakers(a, b, evaluation, context = {}) {
     template: card.testo,
   }));
 
+  // Le preferenze apprese riordinano il pool prima delle quote: piu una
+  // categoria ha funzionato, piu' e' probabile che entri nel mazzo.
+  const preferenze = context.preferenzeCategorie ?? {};
+  const perPreferenza = (carte) =>
+    Object.keys(preferenze).length === 0
+      ? carte
+      : carte
+          .map((carta, i) => ({ carta, i, peso: preferenze[carta.categoria] ?? 1 }))
+          .sort((x, y) => y.peso - x.peso || x.i - y.i)
+          .map((x) => x.carta);
+
   const seen = new Set();
   /** @type {Map<string, number>} */
   const perTemplate = new Map();
@@ -198,7 +215,10 @@ export function generateIcebreakers(a, b, evaluation, context = {}) {
   /** @type {Array<{ id: string, categoria: string, testo: string, origine: string }>} */
   const clean = [];
 
-  for (const card of [...shuffle(rng, personalized), ...shuffle(rng, universal)]) {
+  for (const card of [
+    ...perPreferenza(shuffle(rng, personalized)),
+    ...perPreferenza(shuffle(rng, universal)),
+  ]) {
     const key = normalize(card.testo);
     if (seen.has(key)) continue;
     if (!isAcceptableCard(card.testo)) continue;
@@ -350,7 +370,7 @@ export function buildEventCard(a, b, evaluation, chosen, options = {}) {
     },
     quando: {
       giorno: dayLabel(slot.day),
-      data: startsAt.toISOString().slice(0, 10),
+      data: toLocalDate(startsAt),
       ora: toHHMM(slot.startMin),
       inizio: startsAt.toISOString(),
       fine_prevista: endsAt.toISOString(),

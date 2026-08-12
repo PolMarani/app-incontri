@@ -9,7 +9,7 @@ Questo repository contiene il **motore**: la logica delle otto fasi, senza
 interfaccia e senza database. Nessuna dipendenza esterna, gira con Node 22+.
 
 ```bash
-npm test     # 229 test
+npm test     # 259 test
 npm run demo # flusso completo stampato a schermo
 ```
 
@@ -255,10 +255,13 @@ stessa regola della Fase 7: **chi ha detto sì non deve mai poter sapere che
 l'altro ha detto no**, e il messaggio di esito è identico che l'altro abbia
 rifiutato o semplicemente non abbia aperto l'app.
 
-`debriefSignalsForMatcher()` restituisce alla Fase 1 quanto la serata si è retta
-da sola, l'equilibrio dei turni e quali categorie di carte hanno funzionato. È
-il primo dato reale su cosa fa davvero parlare due persone — oggi i pesi e le
-famiglie di interessi sono scritti a mano.
+`debriefSignalsForMatcher()` restituisce quanto la serata si è retta da sola,
+l'equilibrio dei turni e quali categorie di carte hanno funzionato;
+`preferenzeDaSegnali()` le trasforma in pesi che `generateIcebreakers()`
+consuma. È l'unico punto del sistema in cui i pesi smettono di essere quelli
+scritti a mano e diventano quelli visti al tavolo — e resta volutamente cauto:
+una sola carta giocata non sposta quasi niente, perché un modello che si
+convince in fretta smette di proporre le cose che non ha ancora provato.
 
 ### Fase 7 — Momenti di affetto
 
@@ -355,11 +358,57 @@ Il riepilogo finisce nei segnali al matcher: una serata con poche interruzioni �
 una serata che si è retta da sola.
 
 
+### Il runtime della serata
+
+Le fasi 5, 7 e 8 vivono sugli stessi segnali e vogliono lo stesso telefono.
+Finché ognuna veniva guidata dal chiamante, tre cose non funzionavano:
+
+1. **Il tetto sulle interruzioni non esisteva davvero** — il budget di
+   attenzione lo consultava una fase sola, le altre parlavano quando volevano.
+2. **Le precedenze erano casuali** — se nello stesso istante il compagno voleva
+   una carta, l'affetto una proposta e i giochi una partita, vinceva quella che
+   il chiamante aveva scritto per prima nel proprio codice.
+3. **Il ciclo dei tick era duplicato** in ogni client, e con lui la logica di
+   coordinamento: il posto più facile del sistema in cui sbagliare.
+
+`evening.js` risolve tutte e tre. I moduli tornano a fare una cosa sola — dire
+se *avrebbe senso* parlare adesso — e chi parla davvero lo decide il runtime:
+
+| | Precedenza | Perché |
+|---|---|---|
+| 1 | **Sicurezza** | Sempre, prima di tutto, e in silenzio. Blocca affetto e giochi per il resto della serata. |
+| 2 | **Richiesta esplicita** | Se lo chiedono loro non è un'interruzione: non consuma budget. |
+| 3 | **Momenti di affetto** | Rari e legati a un clima che passa. |
+| 4 | **Giochi** | Solo dopo che le mosse leggere non sono bastate. |
+| 5 | **Compagno** | Carte e battute. |
+
+Il criterio dell'ordine è **quanto un'occasione è deperibile**: una carta si può
+giocare anche cinque minuti dopo, un momento caldo no. Il criterio dei giochi è
+invece l'**escalation** — un gioco chiede dieci minuti, quindi diventa
+ammissibile solo dopo che il compagno ha già provato almeno due rilanci: saltare
+subito alla soluzione grossa per un problema che forse non c'è è il modo più
+sicuro di rovinare una serata che stava andando bene.
+
+Quando il telefono è occupato, il compagno **rinuncia invece di accodarsi**: una
+carta buona fra dieci minuti non è più la stessa carta.
+
+Ogni funzione ha il **suo consenso separato**: chi accetta il compagno non ha
+accettato per questo i momenti di affetto, e chi gioca volentieri non ha
+accettato un microfono acceso. Fondere i consensi in un interruttore solo
+sarebbe comodo e disonesto.
+
+Lo stato è **serializzabile** (`snapshotEvening`): una serata dura due ore e il
+processo che la segue può morire in mezzo, quindi anche i generatori pseudocasuali
+espongono il proprio stato — altrimenti dopo un riavvio i due telefoni
+mostrerebbero cose diverse.
+
+
 ## Struttura
 
 ```
 src/
   engine.js                 orchestrazione delle otto fasi
+  evening.js                runtime della serata: un ciclo solo, un arbitro solo
   phase1-compatibility.js   punteggio, gate, soglia
   phase2-location.js        proposta anonima e consenso
   phase3-eventcard.js       scheda, codice di riconoscimento, icebreaker
@@ -368,7 +417,8 @@ src/
   phase6-debrief.js         debrief privato, scambio contatti, segnali al matcher
   phase7-affection.js       momenti di affetto a doppio consenso
   phase8-games.js           giochi a schermo condiviso
-  attention.js              arbitro fra tutto cio che vuole il telefono
+  attention.js              budget di attenzione condiviso
+  diagnostics.js            copertura del catalogo per profilo di vincoli
   reputation.js             affidabilita, blocchi e percorso di rientro
   types.js                  tipi del dominio (JSDoc)
   data/
@@ -383,7 +433,7 @@ src/
     geo.js                  distanze, punto medio, equita', tragitti
     time.js                 finestre orarie e intersezioni
     rng.js                  casualita' deterministica per match
-test/                       229 test, uno per fase piu' end-to-end
+test/                       259 test, uno per fase piu' end-to-end
 demo/run-demo.js
 ```
 
@@ -426,5 +476,9 @@ Il motore e' completo e testato, ma resta fuori tutto cio' che tocca il mondo:
 - **Isocrone reali.** Il punto a meta' strada e' geometrico: due persone
   equidistanti in chilometri possono essere a quaranta minuti di differenza in
   tram. Serve un servizio di routing.
+- **Copertura del catalogo.** `diagnostics.js` misura quanta parte del catalogo
+  e' utilizzabile per ogni profilo di vincoli, ma il seed su Milano non ha
+  abbastanza locali accessibili perche' il numero sia significativo: e' una
+  metrica pronta, in attesa di un catalogo vero.
 - **Localizzazione.** Numeri di emergenza, stime di percorrenza e catalogo sono
   tarati sull'Italia.

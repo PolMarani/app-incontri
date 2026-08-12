@@ -56,6 +56,7 @@ import {
   buildDebrief,
   chiudiScambioContatti,
   debriefSignalsForMatcher,
+  preferenzeDaSegnali,
   rispondiScambioContatti,
 } from './phase6-debrief.js';
 import {
@@ -81,6 +82,17 @@ import {
   riepilogoAttenzione,
   rilasciaAttenzione,
 } from './attention.js';
+import {
+  chiudiGioco,
+  closeEvening,
+  createEvening,
+  rispondiAffetto,
+  rispondiGioco,
+  snapshotEvening,
+  tickEvening,
+  zittisci,
+} from './evening.js';
+import { coperturaCatalogo, coperturaOraria } from './diagnostics.js';
 import {
   affidabilita,
   fattoreAffidabilita,
@@ -115,6 +127,7 @@ export {
   sogliaSilenzio,
   buildDebrief,
   debriefSignalsForMatcher,
+  preferenzeDaSegnali,
   apriScambioContatti,
   rispondiScambioContatti,
   chiudiScambioContatti,
@@ -130,6 +143,16 @@ export {
   completeGame,
   scadiProposteGioco,
   summarizeGames,
+  createEvening,
+  tickEvening,
+  rispondiAffetto,
+  rispondiGioco,
+  chiudiGioco,
+  zittisci,
+  closeEvening,
+  snapshotEvening,
+  coperturaCatalogo,
+  coperturaOraria,
   createAttentionBudget,
   attenzioneDisponibile,
   richiediAttenzione,
