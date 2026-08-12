@@ -12,8 +12,14 @@ import {
   checkIn,
   closeCompanionSession,
   confirmCheckpoint,
+  completeGame,
   createAffectionTrack,
+  createAttentionBudget,
   createCompanionSession,
+  createGameTrack,
+  maybeProposeGame,
+  respondGame,
+  riepilogoAttenzione,
   debriefSignalsForMatcher,
   maybePropose,
   respond,
@@ -305,6 +311,66 @@ const conRischio = createAffectionTrack(scheda, { consenso: { [a.id]: true, [b.i
 maybePropose(conRischio, { t: 1800, rischio: 'disagio', energia: 0.8, risate: 3 });
 const dopo = maybePropose(conRischio, { t: 3600, rischio: 'nessuno', energia: 0.9, risate: 5 });
 console.log(`  clima ottimo mezz ora dopo -> ${dopo.motivo}`);
+
+// ---------------------------------------------------------------------------
+title('FASE 8 - Giochi a schermo condiviso');
+
+const attenzione = createAttentionBudget({ durataPrevistaMin: scheda.quando.durata_minuti });
+const giochi = createGameTrack(scheda, {
+  consenso: { [a.id]: true, [b.id]: true },
+  attenzione,
+});
+
+console.log(`Catalogo: ${giochi.catalogo.map((g) => g.titolo).join(', ')}`);
+console.log('\nDurante la serata:');
+
+for (let sec = 900; sec < 115 * 60; sec += 60) {
+  const minuti = sec / 60;
+  // La conversazione gira nella prima mezz ora, poi si appiattisce.
+  const energia = minuti < 30 ? 0.85 : 0.4;
+  const { proposta, motivo } = maybeProposeGame(giochi, {
+    t: sec,
+    energia,
+    silenzioSec: energia > 0.6 ? 1 : 6,
+    rischio: 'nessuno',
+  });
+  if (!proposta) {
+    if (minuti === 20) console.log(`   20'  (${motivo})`);
+    continue;
+  }
+
+  console.log(`\n  ${String(proposta.minuto).padStart(3)}'  "${proposta.schermata.cornice}"`);
+  console.log(`        ${proposta.schermata.titolo} - ${proposta.schermata.durataMin} minuti`);
+  console.log(`        ${proposta.schermata.premessa}`);
+
+  respondGame(giochi, proposta.id, a.id, { accetta: true, t: sec });
+  const partita = respondGame(giochi, proposta.id, b.id, { accetta: true, t: sec }).partita;
+  console.log(`        schermo: ${partita.schermo}`);
+  for (const [i, regola] of partita.regole.entries()) {
+    console.log(`          ${i + 1}. ${regola}`);
+  }
+  if (partita.consegna) console.log(`        consegna: "${partita.consegna}"`);
+  if (partita.righe) {
+    for (const riga of partita.righe) {
+      console.log(`          ${riga.domanda}`);
+      console.log(`             ${riga.sinistra}  <---->  ${riga.destra}`);
+    }
+  }
+  if (partita.giocoId === 'infiltrato') {
+    for (const id of [a.id, b.id]) {
+      console.log(`        schermo di ${id}: ${partita.perTe(id).istruzione}`);
+    }
+  }
+
+  const fine = completeGame(giochi, proposta.id, { t: sec + partita.durataMin * 60 });
+  console.log(`        fine -> ${fine.chiusura}`);
+  if (fine.soluzione) console.log(`        soluzione: infiltrato = ${fine.soluzione.infiltrato ?? 'nessuno'}`);
+}
+
+console.log('\nQuanto si e fatto sentire il telefono in tutta la serata:');
+const att = riepilogoAttenzione(attenzione);
+console.log(`  interruzioni: ${att.interruzioni}, quota di budget usata: ${att.quotaUsata}`);
+console.log(`  per fase: ${JSON.stringify(att.perFase)}`);
 
 // ---------------------------------------------------------------------------
 title('FASE 6 - Debrief privato, uno per ciascuno');

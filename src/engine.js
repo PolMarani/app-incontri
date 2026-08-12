@@ -8,6 +8,7 @@
  *   Fase 5  il terzo compagno              -> ascolta, rilancia, veglia, scherza
  *   Fase 6  debrief                        -> uno privato a testa, segnali al matcher
  *   Fase 7  momenti di affetto             -> proposta privata, doppio consenso
+ *   Fase 8  giochi a schermo condiviso      -> proposti nei momenti piatti
  *
  * Le fasi 1-4 portano due persone allo stesso tavolo; le fasi 5-6 stanno con
  * loro mentre ci sono e restituiscono qualcosa quando se ne vanno. Le seconde
@@ -66,6 +67,21 @@ import {
   summarizeAffection,
 } from './phase7-affection.js';
 import {
+  completeGame,
+  createGameTrack,
+  maybeProposeGame,
+  respondGame,
+  scadiProposteGioco,
+  summarizeGames,
+} from './phase8-games.js';
+import {
+  attenzioneDisponibile,
+  createAttentionBudget,
+  richiediAttenzione,
+  riepilogoAttenzione,
+  rilasciaAttenzione,
+} from './attention.js';
+import {
   affidabilita,
   fattoreAffidabilita,
   percorsoDiRientro,
@@ -108,6 +124,17 @@ export {
   scadiProposte,
   bloccaPerSicurezza,
   summarizeAffection,
+  createGameTrack,
+  maybeProposeGame,
+  respondGame,
+  completeGame,
+  scadiProposteGioco,
+  summarizeGames,
+  createAttentionBudget,
+  attenzioneDisponibile,
+  richiediAttenzione,
+  rilasciaAttenzione,
+  riepilogoAttenzione,
   affidabilita,
   fattoreAffidabilita,
   percorsoDiRientro,

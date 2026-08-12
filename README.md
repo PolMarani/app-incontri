@@ -5,11 +5,11 @@ due persone, negozia un posto neutro, consegna una scheda con luogo, ora, codice
 di riconoscimento e carte per rompere il ghiaccio, e resta accanto a entrambi
 prima, durante e dopo la serata.
 
-Questo repository contiene il **motore**: la logica delle sette fasi, senza
+Questo repository contiene il **motore**: la logica delle otto fasi, senza
 interfaccia e senza database. Nessuna dipendenza esterna, gira con Node 22+.
 
 ```bash
-npm test     # 197 test
+npm test     # 229 test
 npm run demo # flusso completo stampato a schermo
 ```
 
@@ -22,7 +22,7 @@ npm run demo # flusso completo stampato a schermo
 | Posizione neutra | `phase2-location.js` | Tre opzioni pubbliche a meta' strada, presentate in forma anonima; la scelta e' un voto incrociato, non una trattativa. |
 | Icebreaker dedicati | `phase3-eventcard.js` | Carte generate dai profili della coppia, con un filtro che vieta le domande da colloquio. La Fase 5 le gioca al momento giusto invece di lasciarle in una lista. |
 
-## Le sette fasi
+## Le otto fasi
 
 ### Fase 1 — Valutazione del match
 
@@ -303,11 +303,63 @@ Il riepilogo finale contiene solo ciò che è stato condiviso: **i rifiuti non
 risultano da nessuna parte**, come promesso all'utente.
 
 
+### Fase 8 — Giochi a schermo condiviso
+
+Ogni tanto, in modo imprevedibile, l'app propone un gioco da fare in due su un
+telefono solo. Sono nove, e obbediscono a un vincolo che vale più di tutti gli
+altri: **il telefono deve sparire**. Un gioco che tiene due persone a fissare
+uno schermo per venti minuti ha trasformato un appuntamento in una sala giochi —
+quindi ogni gioco dichiara quanto occupa lo schermo (`solo_avvio`, `a_turno`,
+`condiviso`), e **più la serata avanza più si preferiscono quelli che lo
+liberano subito**.
+
+| Gioco | Schermo | Cosa fa |
+|---|---|---|
+| **L'infiltrato** | solo avvio | A uno dei due arriva una bugia da infilare nella conversazione. O a nessuno: una volta su quattro non mente nessuno, ed è quello che rende il gioco vivo. Si parla normalmente per dieci minuti, poi si accusa. |
+| **L'ultimo posto** | a turno | Una cosa che non si può tagliare in due (l'ultimo posto sull'ultimo treno, una scusa perfetta spendibile una volta sola). Ognuno scrive come la dividerebbe, si scopre, si tratta. |
+| **Bestia comune** | condiviso | Schermo diviso a metà, mezza creatura a testa senza sbirciare. Alla fine le metà si uniscono e le si dà un nome. |
+| **Prove** | solo avvio | Sessanta secondi per trovare una foto nella propria galleria ("l'ultima cosa che hai fotografato per non dimenticarla"). Chi guarda ha tre domande, chi mostra può rifiutarne una senza dire perché. |
+| **La riga** | condiviso | Non pro/contro: uno spettro. "Arrivare a cena con le mani vuote: non ci pensa nessuno ↔ non ti invito più." Ognuno mette il segno al buio, si scopre insieme. |
+| **L'inventario** | solo avvio | "L'oggetto qui dentro che ha visto più cose." Si sceglie guardando la stanza, un minuto a testa per difenderlo. |
+| **Vite degli altri** | a turno | Ognuno sceglie in silenzio un tavolo e scrive tre parole. Si scopre, si indovina chi ha scelto chi, si costruisce una storia sola con tutte e sei. |
+| **Il testimone** | a turno | Dieci secondi per leggere una scena assurda, poi la si racconta in cinque frasi mentre l'altro fa domande per trovare il dettaglio nascosto. Poi si scambiano i ruoli. |
+| **Il patto** | condiviso | Solo a fine serata: una frase sola scritta da entrambi, una regola che varrebbe se vi rivedeste. Si chiude solo se va bene a tutti e due. |
+
+**Quando proporre un gioco è l'esatto contrario di quando proporre una carta.**
+Una carta riempie un silenzio: costa poco e si può ignorare. Un gioco chiede
+dieci minuti e cambia la forma della serata — quindi **mai mentre la
+conversazione gira** (interromperebbe proprio la cosa che dovrebbe produrre), e
+solo nei momenti piatti in cui la serata gira a vuoto ma il clima non è brutto.
+Due a serata, venticinque minuti di distanza, mai uno che sfori l'orario di
+chiusura, e la proposta dichiara sempre **durata e via d'uscita**: un gioco che
+non dice quanto dura è una trappola.
+
+Quattro cose che nessun gioco fa: **nessun punteggio di compatibilità** (un
+"siete affini al 78%" viene ricordato al posto di tutta la serata), **nessun
+quiz con la risposta giusta** (produce un vincitore e un perdente, non una
+conversazione), nessun gioco che si potrebbe fare identico da soli sul divano, e
+nessun gioco che si chiude in sé stesso — ognuno ha una `chiusura` che rimette
+in mano un argomento.
+
+### L'arbitro dell'attenzione
+
+Con carte, battute, proposte di affetto e giochi, il rischio non è più che
+l'app dica la cosa sbagliata: è che **chieda attenzione tre volte in cinque
+minuti**. Ogni modulo preso da solo si comporta bene — il problema nasce dalla
+somma, e nessuno dei moduli può vederla.
+
+`attention.js` è l'unico posto che tiene il conto: una richiesta alla volta, una
+pausa dopo ognuna proporzionale a quanto è stata invadente (una carta pesa 1, un
+gioco pesa 4), e un tetto per la serata. Chi non ottiene il turno non insiste.
+Il riepilogo finisce nei segnali al matcher: una serata con poche interruzioni è
+una serata che si è retta da sola.
+
+
 ## Struttura
 
 ```
 src/
-  engine.js                 orchestrazione delle sette fasi
+  engine.js                 orchestrazione delle otto fasi
   phase1-compatibility.js   punteggio, gate, soglia
   phase2-location.js        proposta anonima e consenso
   phase3-eventcard.js       scheda, codice di riconoscimento, icebreaker
@@ -315,6 +367,8 @@ src/
   phase5-companion.js       il terzo compagno: quando ascoltare e quando parlare
   phase6-debrief.js         debrief privato, scambio contatti, segnali al matcher
   phase7-affection.js       momenti di affetto a doppio consenso
+  phase8-games.js           giochi a schermo condiviso
+  attention.js              arbitro fra tutto cio che vuole il telefono
   reputation.js             affidabilita, blocchi e percorso di rientro
   types.js                  tipi del dominio (JSDoc)
   data/
@@ -323,12 +377,13 @@ src/
     icebreakers.js          template e mazzo base
     companion-lines.js      battute e rilanci del compagno, con le frasi vietate
     affection-moments.js    la scala dei gesti, dal brindisi all abbraccio lungo
+    games.js                i nove giochi, con regole e materiale
     sample-profiles.js      profili di esempio per demo e test
   util/
     geo.js                  distanze, punto medio, equita', tragitti
     time.js                 finestre orarie e intersezioni
     rng.js                  casualita' deterministica per match
-test/                       197 test, uno per fase piu' end-to-end
+test/                       229 test, uno per fase piu' end-to-end
 demo/run-demo.js
 ```
 
