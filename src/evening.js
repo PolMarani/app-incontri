@@ -31,6 +31,7 @@
  * giochi e' invece l'escalation: si prova prima la cosa che costa poco.
  */
 
+import { restoreRng } from './util/rng.js';
 import {
   attenzioneDisponibile,
   createAttentionBudget,
@@ -298,6 +299,31 @@ export function closeEvening(evening, options = {}) {
 }
 
 /**
+ * JSON non sa rappresentare -Infinity: `JSON.stringify(-Infinity)` produce
+ * `null`. I contatori "non e' mai successo" (`ultimoInterventoSec`,
+ * `ultimaPropostaSec`, `liberoDaSec`) partono proprio da -Infinity, e ripristinarli
+ * come `null` li trasformerebbe in 0 al primo confronto: una serata ripresa
+ * subito dopo l'avvio si ritroverebbe con tutte le pause gia' scadute.
+ */
+const CAMPI_INFINITI = ['ultimoInterventoSec', 'ultimaPropostaSec', 'liberoDaSec'];
+
+function serializzaInfiniti(oggetto) {
+  const copia = { ...oggetto };
+  for (const campo of CAMPI_INFINITI) {
+    if (copia[campo] === -Infinity) copia[campo] = '-Infinity';
+  }
+  return copia;
+}
+
+function ripristinaInfiniti(oggetto) {
+  const copia = { ...oggetto };
+  for (const campo of CAMPI_INFINITI) {
+    if (copia[campo] === '-Infinity' || copia[campo] === null) copia[campo] = -Infinity;
+  }
+  return copia;
+}
+
+/**
  * Fotografia serializzabile dello stato.
  *
  * Una serata dura due ore e il processo che la segue puo' morire in mezzo: lo
@@ -308,19 +334,69 @@ export function closeEvening(evening, options = {}) {
 export function snapshotEvening(evening) {
   return JSON.parse(
     JSON.stringify({
+      versione: 1,
       matchId: evening.matchId,
       partecipanti: evening.partecipanti,
       durataPrevistaMin: evening.durataPrevistaMin,
-      attenzione: evening.attenzione,
+      attive: evening.attive,
+      apertura: evening.apertura,
+      attenzione: serializzaInfiniti(evening.attenzione),
       log: evening.log,
       rng: {
         compagno: evening.compagno.rng?.state ?? null,
         affetto: evening.affetto.rng?.state ?? null,
         giochi: evening.giochi.rng?.state ?? null,
       },
-      compagno: { ...evening.compagno, rng: undefined, carteUsate: [...evening.compagno.carteUsate ?? []] },
-      affetto: { ...evening.affetto, rng: undefined },
-      giochi: { ...evening.giochi, rng: undefined },
+      compagno: {
+        ...serializzaInfiniti(evening.compagno),
+        rng: undefined,
+        inizio: evening.compagno.inizio?.toISOString() ?? null,
+        carteUsate: [...(evening.compagno.carteUsate ?? [])],
+      },
+      affetto: { ...serializzaInfiniti(evening.affetto), rng: undefined },
+      giochi: { ...serializzaInfiniti(evening.giochi), rng: undefined },
     }),
   );
+}
+
+/**
+ * Ricostruisce una serata da una fotografia.
+ *
+ * Deve restituire un oggetto indistinguibile da quello originale per le
+ * decisioni future: stessi generatori nello stesso punto, stesse pause, stesse
+ * carte gia' usate. Se il ripristino perdesse anche solo lo stato dei
+ * generatori, i due telefoni comincerebbero a vedere carte diverse dopo un
+ * riavvio - ed e' l'unico modo in cui questa app puo' contraddirsi davanti a
+ * due persone sedute allo stesso tavolo.
+ *
+ * @param {ReturnType<typeof snapshotEvening>} snapshot
+ * @returns {ReturnType<typeof createEvening>}
+ */
+export function restoreEvening(snapshot) {
+  if (snapshot?.versione !== 1) {
+    throw new Error(`Fotografia di versione non supportata: ${snapshot?.versione}`);
+  }
+  return {
+    matchId: snapshot.matchId,
+    partecipanti: snapshot.partecipanti,
+    durataPrevistaMin: snapshot.durataPrevistaMin,
+    attive: snapshot.attive,
+    apertura: snapshot.apertura,
+    attenzione: ripristinaInfiniti(snapshot.attenzione),
+    log: snapshot.log,
+    compagno: {
+      ...ripristinaInfiniti(snapshot.compagno),
+      inizio: snapshot.compagno.inizio ? new Date(snapshot.compagno.inizio) : null,
+      carteUsate: new Set(snapshot.compagno.carteUsate ?? []),
+      rng: restoreRng(snapshot.rng.compagno ?? 0),
+    },
+    affetto: {
+      ...ripristinaInfiniti(snapshot.affetto),
+      rng: restoreRng(snapshot.rng.affetto ?? 0),
+    },
+    giochi: {
+      ...ripristinaInfiniti(snapshot.giochi),
+      rng: restoreRng(snapshot.rng.giochi ?? 0),
+    },
+  };
 }

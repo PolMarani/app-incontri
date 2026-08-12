@@ -6,6 +6,7 @@ import {
   closeEvening,
   createEvening,
   rispondiAffetto,
+  restoreEvening,
   rispondiGioco,
   snapshotEvening,
   tickEvening,
@@ -300,4 +301,63 @@ test('lo snapshot non contiene funzioni', () => {
     return false;
   };
   assert.equal(cerca(snapshotEvening(e)), false);
+});
+
+// --- Salvataggio e ripresa --------------------------------------------------
+
+test('una serata ripresa prende le stesse decisioni di una mai interrotta', () => {
+  const clima = (min) => (min % 12 < 6
+    ? { energia: 0.3, silenzioSec: 28 }
+    : { energia: 0.65, risate: 2, silenzioSec: 1 });
+
+  // Serata di riferimento: gira senza interruzioni dal minuto 5 al 90.
+  const continua = serata();
+  const azioniContinue = [];
+  for (let sec = 300; sec < 90 * 60; sec += 30) {
+    azioniContinue.push(...tickEvening(continua, tick({ t: sec, ...clima(sec / 60) })).azioni);
+  }
+
+  // Serata identica, ma a meta' il processo muore e riparte da una fotografia.
+  let ripresa = serata();
+  const azioniRiprese = [];
+  for (let sec = 300; sec < 45 * 60; sec += 30) {
+    azioniRiprese.push(...tickEvening(ripresa, tick({ t: sec, ...clima(sec / 60) })).azioni);
+  }
+  ripresa = restoreEvening(JSON.parse(JSON.stringify(snapshotEvening(ripresa))));
+  for (let sec = 45 * 60; sec < 90 * 60; sec += 30) {
+    azioniRiprese.push(...tickEvening(ripresa, tick({ t: sec, ...clima(sec / 60) })).azioni);
+  }
+
+  const impronta = (azioni) =>
+    azioni.map((x) => `${x.t}|${x.fonte}|${x.tipo}|${x.carta?.id ?? x.proposta?.id ?? ''}`);
+  assert.deepEqual(impronta(azioniRiprese), impronta(azioniContinue));
+  assert.ok(azioniContinue.length > 3, 'il confronto deve avvenire su qualcosa');
+});
+
+test('il ripristino non trasforma le pause mai aperte in pause gia scadute', () => {
+  // -Infinity non sopravvive a JSON: diventa null, e null si comporta come 0.
+  const e = serata();
+  const ripresa = restoreEvening(snapshotEvening(e));
+  assert.equal(ripresa.attenzione.liberoDaSec, -Infinity);
+  assert.equal(ripresa.compagno.ultimoInterventoSec, -Infinity);
+  assert.equal(ripresa.affetto.ultimaPropostaSec, -Infinity);
+  assert.equal(ripresa.giochi.ultimaPropostaSec, -Infinity);
+});
+
+test('il ripristino conserva le carte gia usate come insieme', () => {
+  const e = serata();
+  scorri(e, { passo: 30, clima: () => ({ energia: 0.3, silenzioSec: 25 }) });
+  const ripresa = restoreEvening(snapshotEvening(e));
+  assert.ok(ripresa.compagno.carteUsate instanceof Set);
+  assert.equal(ripresa.compagno.carteUsate.size, e.compagno.carteUsate.size);
+});
+
+test('il ripristino conserva le date come date', () => {
+  const ripresa = restoreEvening(snapshotEvening(serata()));
+  assert.ok(ripresa.compagno.inizio instanceof Date);
+});
+
+test('una fotografia di versione ignota viene rifiutata invece di essere indovinata', () => {
+  assert.throws(() => restoreEvening({ versione: 99 }), /versione non supportata/);
+  assert.throws(() => restoreEvening({}), /versione non supportata/);
 });

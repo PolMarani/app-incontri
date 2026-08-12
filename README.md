@@ -9,7 +9,7 @@ Questo repository contiene il **motore**: la logica delle otto fasi, senza
 interfaccia e senza database. Nessuna dipendenza esterna, gira con Node 22+.
 
 ```bash
-npm test     # 259 test
+npm test     # 297 test
 npm run demo # flusso completo stampato a schermo
 ```
 
@@ -397,10 +397,61 @@ accettato per questo i momenti di affetto, e chi gioca volentieri non ha
 accettato un microfono acceso. Fondere i consensi in un interruttore solo
 sarebbe comodo e disonesto.
 
-Lo stato è **serializzabile** (`snapshotEvening`): una serata dura due ore e il
-processo che la segue può morire in mezzo, quindi anche i generatori pseudocasuali
-espongono il proprio stato — altrimenti dopo un riavvio i due telefoni
-mostrerebbero cose diverse.
+Lo stato è **salvabile e ripristinabile** (`snapshotEvening` /
+`restoreEvening`): una serata dura due ore e il processo che la segue può morire
+in mezzo. Anche i generatori pseudocasuali espongono il proprio stato,
+altrimenti dopo un riavvio i due telefoni mostrerebbero carte diverse — l'unico
+modo in cui questa app può contraddirsi davanti a due persone sedute allo stesso
+tavolo. Un test verifica che una serata ripresa a metà prenda **esattamente** le
+stesse decisioni di una mai interrotta.
+
+
+### Il ciclo di abbinamento
+
+`rankCandidates` risponde a "chi va bene per questa persona", ed è la domanda
+sbagliata quando si abbina un'intera città nello stesso momento: se il migliore
+di A è B e il migliore di C è ancora B, un matcher per-utente **assegna B due
+volte**. In un'app dove l'unico esito è uscire di casa, quello è letteralmente
+il sistema che organizza un buco — e chi lo subisce non ha modo di distinguerlo
+da un no-show.
+
+`runMatchingRound()` abbina globalmente: ogni persona compare in una coppia
+sola. Prende tutte le coppie ammissibili, le ordina per punteggio e accetta
+quelle in cui nessuno dei due è già impegnato. Sembra una scorciatoia, e invece
+su punteggi **simmetrici** produce un abbinamento *stabile*:
+
+> Sia (x, y) una coppia non formata in cui entrambi preferirebbero l'altro al
+> proprio partner. L'algoritmo ha esaminato (x, y) e l'ha scartata solo perché
+> uno dei due — diciamo x — era già impegnato con z. Ma z era stato preso prima,
+> quindi w(x, z) ≥ w(x, y): x non preferisce y. Contraddizione.
+
+Il punteggio della Fase 1 è simmetrico per costruzione, e c'è un test che lo
+verifica. `coppieBloccanti()` ricontrolla la proprietà sui dati veri: se un
+giorno il punteggio smettesse di essere simmetrico, se ne accorgerebbe invece di
+lasciar passare abbinamenti peggiori in silenzio.
+
+Chi resta fuori riceve un motivo, e la distinzione conta: **"non c'era nessuno
+per te" e "c'era, ma si è preso"** sono due esperienze diverse, e la seconda non
+va raccontata come la prima. Chi resta fuori per congestione ha la precedenza al
+ciclo successivo.
+
+### Validazione al confine
+
+Il motore si fidava di tutto: una latitudine scambiata con la longitudine
+produceva un match a quattromila chilometri, un orario scritto male esplodeva a
+metà della Fase 1 con un messaggio incomprensibile.
+
+Il controllo più importante è però sui **campi liberi**. Le curiosità dichiarate
+nel profilo finiscono *testuali* nelle carte che legge l'altra persona: tutto il
+lavoro sull'anonimato — niente nomi, niente foto, riconoscimento senza
+descrizioni fisiche — viene annullato da una curiosità che contiene un numero di
+telefono o un handle social. Non serve nemmeno malafede: basta scrivere "mi
+trovi su instagram come…" pensando sia simpatico.
+
+`contieneContatti()` viene applicato **due volte**: quando il profilo entra, e
+di nuovo quando la Fase 3 sta per stampare la carta. Nel secondo passaggio la
+carta viene *scartata*, non ripulita — un filtro che riscrive sbaglia prima o
+poi, uno che scarta no.
 
 
 ## Struttura
@@ -409,6 +460,8 @@ mostrerebbero cose diverse.
 src/
   engine.js                 orchestrazione delle otto fasi
   evening.js                runtime della serata: un ciclo solo, un arbitro solo
+  matching-round.js         abbinamento globale: nessuno assegnato due volte
+  validation.js             controlli al confine, compresi i campi liberi
   phase1-compatibility.js   punteggio, gate, soglia
   phase2-location.js        proposta anonima e consenso
   phase3-eventcard.js       scheda, codice di riconoscimento, icebreaker
@@ -433,7 +486,7 @@ src/
     geo.js                  distanze, punto medio, equita', tragitti
     time.js                 finestre orarie e intersezioni
     rng.js                  casualita' deterministica per match
-test/                       259 test, uno per fase piu' end-to-end
+test/                       297 test, uno per fase piu' end-to-end
 demo/run-demo.js
 ```
 

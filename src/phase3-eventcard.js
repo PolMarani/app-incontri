@@ -13,6 +13,7 @@
 import { createRng, pick, shuffle } from './util/rng.js';
 import { dayLabel, nextOccurrence, toHHMM, toLocalDate } from './util/time.js';
 import { VIBE_LABELS, familiesOf, interestLabel } from './data/taxonomy.js';
+import { contieneContatti } from './validation.js';
 import {
   BANNED_PATTERNS,
   CURIOSITY_PROMPTS,
@@ -126,6 +127,12 @@ function buildPersonalizedPool(a, b, evaluation, context, rng) {
 
   // 3. Curiosita' dichiarate: sono la materia prima migliore.
   for (const curiosity of [...(a.curiosities ?? []), ...(b.curiosities ?? [])]) {
+    // Seconda barriera dopo la validazione del profilo: una curiosita' con
+    // dentro un contatto verrebbe letta dall'altra persona prima ancora di
+    // incontrarsi, e annullerebbe tutto l'anonimato costruito nelle fasi 2 e 3.
+    // Si scarta la carta, non si prova a ripulire il testo: un filtro che
+    // riscrive sbaglia prima o poi, uno che scarta no.
+    if (!contieneContatti(curiosity).pulito) continue;
     for (const template of CURIOSITY_PROMPTS) {
       pool.push({
         categoria: 'curiosita',

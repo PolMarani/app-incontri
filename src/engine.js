@@ -1,5 +1,5 @@
 /**
- * Motore BlindStep: orchestrazione delle sei fasi.
+ * Motore BlindStep: orchestrazione delle otto fasi.
  *
  *   Fase 1  valutazione del match          -> punteggio, gate, soglia 80%
  *   Fase 2  negoziazione double blind      -> 3 opzioni anonime, consenso
@@ -8,11 +8,12 @@
  *   Fase 5  il terzo compagno              -> ascolta, rilancia, veglia, scherza
  *   Fase 6  debrief                        -> uno privato a testa, segnali al matcher
  *   Fase 7  momenti di affetto             -> proposta privata, doppio consenso
- *   Fase 8  giochi a schermo condiviso      -> proposti nei momenti piatti
+ *   Fase 8  giochi a schermo condiviso     -> proposti nei momenti piatti
  *
- * Le fasi 1-4 portano due persone allo stesso tavolo; le fasi 5-6 stanno con
+ * Le fasi 1-4 portano due persone allo stesso tavolo; le fasi 5-8 stanno con
  * loro mentre ci sono e restituiscono qualcosa quando se ne vanno. Le seconde
- * sono opzionali e richiedono il consenso esplicito di entrambi.
+ * sono tutte opzionali e ognuna ha il suo consenso separato; a coordinarle
+ * durante la serata e' `evening.js`, non il chiamante.
  *
  * Il flusso si ferma alla prima fase che non passa e dice perche'. Nessuna
  * fase inventa dati mancanti: se non c'e' un posto equo e sicuro, il match non
@@ -87,12 +88,15 @@ import {
   closeEvening,
   createEvening,
   rispondiAffetto,
+  restoreEvening,
   rispondiGioco,
   snapshotEvening,
   tickEvening,
   zittisci,
 } from './evening.js';
 import { coperturaCatalogo, coperturaOraria } from './diagnostics.js';
+import { coppieBloccanti, runMatchingRound } from './matching-round.js';
+import { contieneContatti, validateBatch, validateProfile } from './validation.js';
 import {
   affidabilita,
   fattoreAffidabilita,
@@ -151,6 +155,12 @@ export {
   zittisci,
   closeEvening,
   snapshotEvening,
+  restoreEvening,
+  runMatchingRound,
+  coppieBloccanti,
+  validateProfile,
+  validateBatch,
+  contieneContatti,
   coperturaCatalogo,
   coperturaOraria,
   createAttentionBudget,
