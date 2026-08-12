@@ -1,0 +1,16 @@
+{
+  "name": "blindstep",
+  "version": "0.1.0",
+  "description": "Motore di coordinamento e matchmaking per BlindStep: incontri al buio, di persona, senza chat.",
+  "type": "module",
+  "main": "src/engine.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "demo": "node demo/run-demo.js"
+  },
+  "license": "MIT",
+  "private": true
+}
