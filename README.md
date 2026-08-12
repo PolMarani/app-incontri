@@ -5,11 +5,11 @@ due persone, negozia un posto neutro, consegna una scheda con luogo, ora, codice
 di riconoscimento e carte per rompere il ghiaccio, e resta accanto a entrambi
 prima, durante e dopo la serata.
 
-Questo repository contiene il **motore**: la logica delle quattro fasi, senza
+Questo repository contiene il **motore**: la logica delle sei fasi, senza
 interfaccia e senza database. Nessuna dipendenza esterna, gira con Node 22+.
 
 ```bash
-npm test     # 88 test
+npm test     # 135 test
 npm run demo # flusso completo stampato a schermo
 ```
 
@@ -17,12 +17,12 @@ npm run demo # flusso completo stampato a schermo
 
 | Principio | Dove vive | Cosa significa concretamente |
 |---|---|---|
-| Zero chat | `phase4-safety.js` | Il canale di supporto porta all'assistente o a un operatore, **mai** all'altra persona. Non esiste nessuna funzione che scriva da un utente all'altro. |
+| Zero chat | `phase4-safety.js` | Il canale di supporto porta all'assistente o a un operatore, **mai** all'altra persona. Non esiste nessuna funzione che scriva da un utente all'altro. Il compagno di Fase 5 sta al tavolo con entrambi, non fa da tramite fra i due. |
 | Obbligo di incontro | `phase1-compatibility.js` | Se non esiste una sera libera in comune o un posto equo raggiungibile, il match viene **scartato**: senza chat non c'e' un ripiego in cui parcheggiarlo. |
 | Posizione neutra | `phase2-location.js` | Tre opzioni pubbliche a meta' strada, presentate in forma anonima; la scelta e' un voto incrociato, non una trattativa. |
-| Icebreaker dedicati | `phase3-eventcard.js` | Carte generate dai profili della coppia, con un filtro che vieta le domande da colloquio. |
+| Icebreaker dedicati | `phase3-eventcard.js` | Carte generate dai profili della coppia, con un filtro che vieta le domande da colloquio. La Fase 5 le gioca al momento giusto invece di lasciarle in una lista. |
 
-## Le quattro fasi
+## Le sei fasi
 
 ### Fase 1 — Valutazione del match
 
@@ -139,26 +139,104 @@ sempre a schermo. L'assistente non fa diagnosi e lo dice.
 
 Aprire il supporto **non manda nessun segnale all'altra persona**.
 
+### Fase 5 — Il terzo compagno
+
+Un'AI compresente alla serata: ascolta, rilancia quando la conversazione si
+inceppa, tiene d'occhio la sicurezza e ogni tanto fa una battuta. Non è un
+tramite fra i due — quelli sono seduti allo stesso tavolo e si parlano da soli —
+è una presenza in più, come l'amico che sta zitto in fondo.
+
+**Cosa entra nel motore: niente audio e niente trascrizioni.** Il
+riconoscimento gira sul telefono; da lì passano solo segnali derivati (durata
+dei silenzi, equilibrio dei turni, risate, domande, segnale di allarme). Non è
+una formalità burocratica: due persone sedute in un bar sono in un luogo
+pubblico, e un microfono acceso raccoglie anche il tavolo accanto — gente che
+non ha acconsentito a niente e che non è nemmeno iscritta. Il contratto
+`SignalTick` esiste per rendere *impossibile*, non solo sconsigliato, far
+arrivare al server il contenuto di una conversazione privata.
+
+**Il consenso è un cancello, non una preferenza.** Se anche uno solo dei due non
+lo dà, il compagno non ascolta niente. Non esiste una modalità "ascolto solo per
+uno", perché l'altro sarebbe ascoltato senza aver detto di sì.
+
+Il problema vero non è cosa dire, è **quando**. Il modo più facile di rovinare
+un appuntamento è mettere al tavolo qualcosa che interviene troppo:
+
+- **budget** di 6 interventi spontanei a serata, e un intervallo minimo che
+  **si allunga da solo ogni volta che parla** — il compagno si fa da parte man
+  mano che la conversazione si regge;
+- **non tutti i silenzi sono uguali**: otto secondi al minuto cinque sono
+  imbarazzo, gli stessi otto secondi al minuto cinquanta sono due persone che
+  stanno bene zitte, e interromperle sarebbe il danno vero (`sogliaSilenzio()`);
+- **non interrompe mai chi sta raccontando** (energia alta);
+- **la battuta arriva solo se si sta già ridendo**. Una battuta dentro un
+  silenzio teso è la cosa che lo peggiora di più. Massimo due a serata;
+- lo **squilibrio dei turni** deve durare, non basta un istante: allora la carta
+  viene girata "a chi finora ha ascoltato di più" — mai un nome, mai
+  "tu che parli poco";
+- quando la serata si spegne propone la **chiusura**, così non deve essere
+  nessuno dei due a dire per primo "andiamo".
+
+**La sicurezza precede tutto ed è sempre silenziosa.** Un allarme detto ad alta
+voce davanti alla persona di cui hai paura ti mette in pericolo invece di
+toglierti da lì: il segnale va alla Fase 4 senza comparire al tavolo. Resta
+attiva anche a compagno zittito, ed è scritto nel consenso iniziale.
+
+Di default il compagno **scrive sullo schermo invece di parlare**: una voce che
+esce dal telefono a un primo appuntamento la sentono anche i tavoli vicini.
+
+Regole di tono in `data/companion-lines.js`: non commenta mai le due persone,
+non dice mai come sta andando, e se fa ironia la fa **su di sé** — è l'unica
+cosa al tavolo su cui può scherzare senza ferire nessuno. Un test verifica ogni
+riga contro una lista di frasi vietate.
+
+### Fase 6 — Debrief
+
+È la parte più facile da sbagliare dell'intera app, quindi le regole sono poche
+e rigide:
+
+1. **Privato e asimmetrico.** Ognuno vede solo il proprio, e il proprio parla
+   solo di sé. Nessuno riceve mai "cosa ha pensato l'altro di te": è
+   l'informazione che tutti vorrebbero e l'unica capace di fare danni veri.
+2. **Una sola cosa da provare.** Non un elenco. Tre osservazioni critiche di
+   fila non sono un allenamento, sono una pagella — e a una pagella non si
+   migliora, ci si affeziona in negativo. Prima cosa ha funzionato, poi al
+   massimo una cosa per la volta dopo. Se non c'è niente di utile da dire,
+   `daProvare` resta `null`: non si inventa una critica per riempire.
+3. **Comportamenti, mai persone.** "Hai fatto due domande in un'ora e mezza" è
+   un fatto su cui si può agire; "sei poco curioso" è un'etichetta che uno si
+   porta dietro.
+4. **Niente punteggi.** Nessun voto alla serata, nessun voto alla persona: un
+   numero su una cosa così viene ricordato e nient'altro.
+
+`debriefSignalsForMatcher()` restituisce alla Fase 1 quanto la serata si è retta
+da sola, l'equilibrio dei turni e quali categorie di carte hanno funzionato. È
+il primo dato reale su cosa fa davvero parlare due persone — oggi i pesi e le
+famiglie di interessi sono scritti a mano.
+
 ## Struttura
 
 ```
 src/
-  engine.js                 orchestrazione delle quattro fasi
+  engine.js                 orchestrazione delle sei fasi
   phase1-compatibility.js   punteggio, gate, soglia
   phase2-location.js        proposta anonima e consenso
   phase3-eventcard.js       scheda, codice di riconoscimento, icebreaker
   phase4-safety.js          conferme, check-in, no-show, supporto
+  phase5-companion.js       il terzo compagno: quando ascoltare e quando parlare
+  phase6-debrief.js         debrief privato e segnali di ritorno al matcher
   types.js                  tipi del dominio (JSDoc)
   data/
     taxonomy.js             famiglie di interessi e adiacenza fra vibe
     venues.js               catalogo locali verificati (seed su Milano)
     icebreakers.js          template e mazzo base
+    companion-lines.js      battute e rilanci del compagno, con le frasi vietate
     sample-profiles.js      profili di esempio per demo e test
   util/
     geo.js                  distanze, punto medio, equita', tragitti
     time.js                 finestre orarie e intersezioni
     rng.js                  casualita' deterministica per match
-test/                       88 test, uno per fase piu' end-to-end
+test/                       135 test, uno per fase piu' end-to-end
 demo/run-demo.js
 ```
 

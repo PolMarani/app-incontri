@@ -1,10 +1,16 @@
 /**
- * Motore BlindStep: orchestrazione delle quattro fasi.
+ * Motore BlindStep: orchestrazione delle sei fasi.
  *
  *   Fase 1  valutazione del match          -> punteggio, gate, soglia 80%
  *   Fase 2  negoziazione double blind      -> 3 opzioni anonime, consenso
  *   Fase 3  carta incontro e icebreaker    -> luogo, ora, codice, mazzo
  *   Fase 4  conferme e sicurezza           -> T-24h/T-6h/T-1h, check-in, supporto
+ *   Fase 5  il terzo compagno              -> ascolta, rilancia, veglia, scherza
+ *   Fase 6  debrief                        -> uno privato a testa, segnali al matcher
+ *
+ * Le fasi 1-4 portano due persone allo stesso tavolo; le fasi 5-6 stanno con
+ * loro mentre ci sono e restituiscono qualcosa quando se ne vanno. Le seconde
+ * sono opzionali e richiedono il consenso esplicito di entrambi.
  *
  * Il flusso si ferma alla prima fase che non passa e dice perche'. Nessuna
  * fase inventa dati mancanti: se non c'e' un posto equo e sicuro, il match non
@@ -28,6 +34,15 @@ import {
   summarizePlan,
 } from './phase4-safety.js';
 
+import {
+  closeCompanionSession,
+  createCompanionSession,
+  observe,
+  setMuto,
+  sogliaSilenzio,
+} from './phase5-companion.js';
+import { buildDebrief, debriefSignalsForMatcher } from './phase6-debrief.js';
+
 export {
   evaluateMatch,
   rankCandidates,
@@ -44,6 +59,13 @@ export {
   cancelMeeting,
   openSupportChannel,
   summarizePlan,
+  createCompanionSession,
+  observe,
+  setMuto,
+  closeCompanionSession,
+  sogliaSilenzio,
+  buildDebrief,
+  debriefSignalsForMatcher,
   DEFAULT_THRESHOLD,
 };
 
