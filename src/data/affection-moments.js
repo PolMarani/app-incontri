@@ -47,7 +47,7 @@ export const MOMENTI = [
     istruzione:
       'La prossima volta che vi passate qualcosa - il bicchiere, il menu, il telefono - ' +
       'fatelo senza evitare le dita.',
-    nota: 'E il gradino piu piccolo che esista: serve a capire se il contatto e benvenuto.',
+    nota: 'E il gradino più piccolo che esista: serve a capire se il contatto e benvenuto.',
     minMinuti: 20,
   },
   {
@@ -73,7 +73,7 @@ export const MOMENTI = [
       'Venti secondi contati davvero. I primi cinque sono un saluto, dal decimo in ' +
       'poi diventa un abbraccio: quasi nessuno arriva mai fin li.',
     nota:
-      'Se a meta uno dei due ride, va benissimo: e la reazione piu comune e non ' +
+      'Se a meta uno dei due ride, va benissimo: e la reazione più comune e non ' +
       'significa che state sbagliando.',
     minMinuti: 60,
     finaleSerata: true,
@@ -83,12 +83,12 @@ export const MOMENTI = [
 
 /**
  * Come viene presentata la proposta, sullo schermo di una sola persona.
- * Il tono e' quello di un suggerimento che si puo' buttare via: nessuna
+ * Il tono e' quello di un suggerimento che si può' buttare via: nessuna
  * insistenza, nessun "dai", nessuna promessa su cosa succedera' dopo.
  */
 export const CORNICI = [
-  'Solo per te, l altra persona non sta leggendo questo.',
-  'Ti va? Se dici di no non lo sapra nessuno.',
+  'Solo per te, l\'altra persona non sta leggendo questo.',
+  'Ti va? Se dici di no non lo saprà nessuno.',
   'Una proposta. Vale zero se non ti va.',
 ];
 
@@ -100,4 +100,4 @@ export const RIFIUTO = {
 
 /** Testo mostrato quando la proposta non va in porto, qualunque sia il motivo. */
 export const ESITO_NEUTRO =
-  'Per stavolta niente. Nessun motivo da cercare: puo essere qualsiasi cosa.';
+  'Per stavolta niente. Nessun motivo da cercare: può essere qualsiasi cosa.';

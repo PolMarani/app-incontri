@@ -35,7 +35,7 @@ export const SAMPLE_PROFILES = {
     interests: ['viaggi', 'cucina', 'libri', 'fotografia', 'podcast'],
     values: ['sostenibilita', 'onesta'],
     curiosities: [
-      'conservo un biglietto del tram di ogni citta in cui sono stato',
+      'conservo un biglietto del tram di ogni città in cui sono stato',
       'ho imparato il greco per leggere un solo libro',
     ],
     vibes: ['libreria', 'caffe_tranquillo', 'mostra'],

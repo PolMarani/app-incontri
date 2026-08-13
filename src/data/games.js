@@ -14,7 +14,7 @@
  *     restano corti.
  *
  *  3. NESSUN PUNTEGGIO DI COMPATIBILITA'. Niente "siete affini al 78%": e' il
- *     modo piu' rapido di far finire una serata, perche' un numero del genere
+ *     modo piu' rapido di far finire una serata, perché' un numero del genere
  *     viene ricordato al posto di tutto il resto.
  *
  *  4. NIENTE QUIZ CON LA RISPOSTA GIUSTA. Una domanda con una risposta esatta
@@ -43,7 +43,7 @@
 export const GIOCHI = [
   {
     id: 'infiltrato',
-    titolo: 'L infiltrato',
+    titolo: 'L\'infiltrato',
     schermo: 'solo_avvio',
     durataMin: 12,
     minMinuti: 25,
@@ -51,13 +51,13 @@ export const GIOCHI = [
       'Uno dei due sta per ricevere una bugia da infilare nella conversazione. ' +
       'Oppure nessuno dei due. Non lo saprete.',
     regole: [
-      'Guardate lo schermo uno alla volta: a uno arriva una bugia da raccontare, all altro la stessa schermata vuota.',
+      'Guardate lo schermo uno alla volta: a uno arriva una bugia da raccontare, all\'altro la stessa schermata vuota.',
       'Da adesso si parla normalmente per dieci minuti. Chi ha la bugia deve piazzarla senza forzare.',
-      'Alla fine ognuno dice se pensa che l altro abbia mentito, e su cosa.',
-      'Poi si tocca lo schermo e si scopre la verita.',
+      'Alla fine ognuno dice se pensa che l\'altro abbia mentito, e su cosa.',
+      'Poi si tocca lo schermo e si scopre la verità.',
     ],
     chiusura:
-      'Chi ha indovinato dica da cosa l ha capito: e li che si scopre quanto ci si stava ' +
+      'Chi ha indovinato dica da cosa l\'ha capito: e li che si scopre quanto ci si stava ' +
       'davvero ascoltando.',
     perche:
       'E il gioco che sfrutta meglio la situazione: due persone che non si conoscono non ' +
@@ -71,36 +71,36 @@ export const GIOCHI = [
       'Sostieni di non aver mai visto un film che hanno visto tutti.',
       'Sostieni di sapere fare una cosa manuale molto specifica.',
       'Sostieni che una cicatrice o un oggetto che hai addosso ha una storia che non ha.',
-      'Sostieni di essere stato in una citta in cui non sei mai stato. Prepara un dettaglio sul cibo.',
+      'Sostieni di essere stato in una città in cui non sei mai stato. Prepara un dettaglio sul cibo.',
     ],
   },
   {
     id: 'ultimo_posto',
-    titolo: 'L ultimo posto',
+    titolo: 'L\'ultimo posto',
     schermo: 'a_turno',
     durataMin: 6,
     minMinuti: 20,
     premessa: 'Una cosa sola, due persone. Vediamo come ve la dividete.',
     regole: [
-      'Sullo schermo compare una cosa che non si puo tagliare in due.',
-      'Ognuno scrive, senza far vedere, come la dividerebbe e una riga sul perche.',
+      'Sullo schermo compare una cosa che non si può tagliare in due.',
+      'Ognuno scrive, senza far vedere, come la dividerebbe e una riga sul perché.',
       'Si gira lo schermo e si legge tutto insieme.',
-      'Se le proposte non coincidono avete tre minuti per trovare un accordo. Se coincidono, spiegatevi il perche.',
+      'Se le proposte non coincidono avete tre minuti per trovare un accordo. Se coincidono, spiegatevi il perché.',
     ],
     chiusura:
-      'La cosa interessante non e come ve la siete divisa, e quale delle due ragioni vi ha ' +
-      'convinto di piu.',
+      'La cosa interessante non è come ve la siete divisa, e quale delle due ragioni vi ha ' +
+      'convinto di più.',
     perche:
       'Una trattativa breve mostra in cinque minuti come una persona sta dentro un ' +
-      'disaccordo: molto piu di qualsiasi domanda diretta sul carattere.',
+      'disaccordo: molto più di qualsiasi domanda diretta sul carattere.',
     materiale: [
-      'L ultimo posto sull ultimo treno della notte.',
+      'L\'ultimo posto sull\'ultimo treno della notte.',
       'Una scusa perfetta per uscire da qualsiasi situazione, spendibile una volta sola.',
       'Sei mesi di ferie, da usare entro un anno.',
-      'Il diritto di rifare una scelta gia fatta, una sola.',
+      'Il diritto di rifare una scelta già fatta, una sola.',
       'Un biglietto per un posto in cui nessuno dei due e mai stato.',
-      'La possibilita di far dimenticare a una persona una cosa che ha visto.',
-      'Un ora al giorno in cui il telefono di tutti gli altri non funziona.',
+      'La possibilità di far dimenticare a una persona una cosa che ha visto.',
+      'Un\'ora al giorno in cui il telefono di tutti gli altri non funziona.',
     ],
   },
   {
@@ -111,7 +111,7 @@ export const GIOCHI = [
     minMinuti: 15,
     premessa: 'Lo schermo si divide in due. Disegnate mezza creatura a testa, senza sbirciare.',
     regole: [
-      'Il telefono sta in mezzo: meta schermo a testa, e la meta dell altro resta coperta.',
+      'Il telefono sta in mezzo: meta schermo a testa, e la meta dell\'altro resta coperta.',
       'Novanta secondi. Non serve saper disegnare, serve solo non fermarsi.',
       'Alla fine le due meta si uniscono.',
       'Insieme le date un nome e decidete cosa mangia.',
@@ -140,7 +140,7 @@ export const GIOCHI = [
       'Lo schermo da una consegna e parte un minuto.',
       'Ognuno cerca nella propria galleria. Vale la prima cosa che trovate, non la migliore.',
       'Si mostrano insieme.',
-      'Chi guarda ha diritto a tre domande. Chi mostra puo rifiutarne una senza dire perche.',
+      'Chi guarda ha diritto a tre domande. Chi mostra può rifiutarne una senza dire perché.',
     ],
     chiusura:
       'La foto conta meno del motivo per cui era ancora li dentro.',
@@ -148,11 +148,11 @@ export const GIOCHI = [
       'Ognuno ha addosso un archivio della propria vita e non lo mostra quasi mai. Il ' +
       'diritto di rifiutare una domanda tiene il gioco lontano dall interrogatorio.',
     materiale: [
-      'La foto piu inspiegabile che avete in galleria.',
+      'La foto più inspiegabile che avete in galleria.',
       'L ultima cosa che avete fotografato solo per non dimenticarla.',
       'Una foto che avete fatto e che non c entra niente con voi.',
-      'La foto piu vecchia che riuscite a trovare in un minuto.',
-      'Uno screenshot che vi siete salvati e non avete piu riguardato.',
+      'La foto più vecchia che riuscite a trovare in un minuto.',
+      'Uno screenshot che vi siete salvati e non avete più riguardato.',
       'Una foto di cibo che vi era sembrata bellissima sul momento.',
     ],
   },
@@ -162,34 +162,34 @@ export const GIOCHI = [
     schermo: 'condiviso',
     durataMin: 6,
     minMinuti: 15,
-    premessa: 'Non e ne giusto ne sbagliato: e una riga, e voi state da qualche parte sopra.',
+    premessa: 'Non è ne giusto ne sbagliato: e una riga, e voi state da qualche parte sopra.',
     regole: [
       'Compare una situazione con due estremi.',
-      'Ognuno mette il proprio segno sulla riga senza vedere quello dell altro.',
+      'Ognuno mette il proprio segno sulla riga senza vedere quello dell\'altro.',
       'Si scoprono insieme.',
-      'Chi sta piu vicino a un estremo difende la sua posizione per trenta secondi.',
+      'Chi sta più vicino a un estremo difende la sua posizione per trenta secondi.',
     ],
     chiusura:
-      'Le righe su cui siete lontani valgono piu di quelle su cui siete vicini: quelle ' +
+      'Le righe su cui siete lontani valgono più di quelle su cui siete vicini: quelle ' +
       'danno da parlare per il resto della serata.',
     perche:
       'Uno spettro evita il si/no e produce sfumature. Le domande sono volutamente su ' +
       'galateo minore: la gente ha opinioni fortissime e nessuna occasione di dirle.',
     materiale: [
-      'Arrivare a cena da qualcuno con le mani vuote | non ci pensa nessuno / non ti invito piu',
-      'Rispondere a un messaggio dopo tre giorni | capita a tutti / e gia una risposta',
-      'Mangiare da soli al ristorante | il massimo della liberta / non ci riuscirei mai',
+      'Arrivare a cena da qualcuno con le mani vuote | non ci pensa nessuno / non ti invito più',
+      'Rispondere a un messaggio dopo tre giorni | capita a tutti / e già una risposta',
+      'Mangiare da soli al ristorante | il massimo della libertà / non ci riuscirei mai',
       'Regalare una cosa che ti hanno regalato | riciclo intelligente / tradimento',
-      'Restituire un libro con le orecchie alle pagine | e vissuto / non te lo presto piu',
+      'Restituire un libro con le orecchie alle pagine | e vissuto / non te lo presto più',
       'Dire a qualcuno che ha una cosa fra i denti | obbligo morale / lascio perdere',
       'Cantare in macchina con una persona che conosci da poco | subito / mai',
-      'Guardare il finale prima dell inizio | legittimo / barbarie',
+      'Guardare il finale prima dell\'inizio | legittimo / barbarie',
       'Tenere le scarpe in casa degli altri | dipende / mai e poi mai',
     ],
   },
   {
     id: 'inventario',
-    titolo: 'L inventario',
+    titolo: 'L\'inventario',
     schermo: 'solo_avvio',
     durataMin: 5,
     minMinuti: 12,
@@ -205,12 +205,12 @@ export const GIOCHI = [
       'Costringe a guardare il posto in cui siete invece dello schermo, e funziona ovunque ' +
       'senza contenuti da scaricare.',
     materiale: [
-      'L oggetto qui dentro che sopravviverebbe piu a lungo a tutti noi.',
-      'L oggetto che ha visto piu cose.',
-      'L oggetto che rubereste se il locale chiudesse domani.',
-      'La cosa piu inutile in questa stanza, e va difesa comunque.',
-      'L oggetto che sembra piu fuori posto.',
-      'La cosa che qualcuno ha scelto con piu cura, secondo voi.',
+      'L\'oggetto qui dentro che sopravviverebbe più a lungo a tutti noi.',
+      'L\'oggetto che ha visto più cose.',
+      'L\'oggetto che rubereste se il locale chiudesse domani.',
+      'La cosa più inutile in questa stanza, e va difesa comunque.',
+      'L\'oggetto che sembra più fuori posto.',
+      'La cosa che qualcuno ha scelto con più cura, secondo voi.',
     ],
   },
   {
@@ -223,7 +223,7 @@ export const GIOCHI = [
     regole: [
       'Ognuno sceglie in silenzio una persona o un tavolo. Non si indica e non si fissa nessuno.',
       'Tre parole a testa sullo schermo, senza far vedere.',
-      'Si scopre insieme, e ognuno prova a capire chi ha scelto l altro.',
+      'Si scopre insieme, e ognuno prova a capire chi ha scelto l\'altro.',
       'Poi costruite una sola storia che tenga insieme tutte e sei le parole.',
     ],
     chiusura:
@@ -245,25 +245,25 @@ export const GIOCHI = [
     schermo: 'a_turno',
     durataMin: 8,
     minMinuti: 25,
-    premessa: 'Uno guarda per dieci secondi, l altro deve ricostruire.',
+    premessa: 'Uno guarda per dieci secondi, l\'altro deve ricostruire.',
     regole: [
       'Uno dei due gira lo schermo verso di se: ha dieci secondi per leggere una scena.',
-      'Lo schermo si spegne. Ora deve raccontarla, ma puo dire solo cinque frasi.',
-      'L altro fa domande finche non trova il dettaglio nascosto - c e sempre, ed e piccolo.',
+      'Lo schermo si spegne. Ora deve raccontarla, ma può dire solo cinque frasi.',
+      'L\'altro fa domande finché non trova il dettaglio nascosto - c\'è sempre, ed e piccolo.',
       'Poi ci si scambia i ruoli.',
     ],
     chiusura:
-      'Chi fa le domande scopre qualcosa su di se: c e chi parte dai fatti e chi parte dalle ' +
+      'Chi fa le domande scopre qualcosa su di se: c\'è chi parte dai fatti e chi parte dalle ' +
       'persone.',
     perche:
-      'E l unico gioco della lista che mette in scena l ascolto invece di chiederlo. Il modo ' +
-      'in cui uno interroga dice piu di quello che racconta.',
+      'E l\'unico gioco della lista che mette in scena l\'ascolto invece di chiederlo. Il modo ' +
+      'in cui uno interroga dice più di quello che racconta.',
     materiale: [
       'Una donna aspetta a una fermata con due valigie identiche. Ne apre una, ci mette dentro il biglietto dell autobus, la richiude.',
       'Un uomo cerca le chiavi in tutte le tasche. Le trova in mano. Continua a cercare per altri dieci secondi.',
-      'Un bambino spiega una regola del gioco a un adulto che ha gia perso. Tiene un dado in bocca.',
-      'Un cameriere porta tre caffe a un tavolo dove siede una persona sola. Nessuno dei tre e per lei.',
-      'Una coppia litiga in silenzio davanti a un frigorifero aperto. Dentro c e solo una candela.',
+      'Un bambino spiega una regola del gioco a un adulto che ha già perso. Tiene un dado in bocca.',
+      'Un cameriere porta tre caffè a un tavolo dove siede una persona sola. Nessuno dei tre e per lei.',
+      'Una coppia litiga in silenzio davanti a un frigorifero aperto. Dentro c\'è solo una candela.',
       'Un uomo legge un giornale di sei anni fa in sala d attesa. Ogni tanto annuisce.',
     ],
   },
@@ -276,11 +276,11 @@ export const GIOCHI = [
     finaleSerata: true,
     premessa: 'Ultima cosa. Una frase sola, scritta da tutti e due.',
     regole: [
-      'Il telefono passa da una mano all altra. Ognuno puo scrivere, cancellare, cambiare.',
+      'Il telefono passa da una mano all\'altra. Ognuno può scrivere, cancellare, cambiare.',
       'Si chiude quando la frase va bene a entrambi. Se non va bene a uno, non si chiude.',
       'Deve essere una regola, non un complimento: qualcosa che varrebbe se vi rivedeste.',
     ],
-    chiusura: 'Ve la mandiamo tutti e due. Vale anche se non vi rivedete mai piu.',
+    chiusura: 'Ve la mandiamo tutti e due. Vale anche se non vi rivedete mai più.',
     perche:
       'Chiude la serata con una cosa fatta insieme invece che con un saluto. E soprattutto ' +
       'sposta il momento imbarazzante del commiato su un compito da svolgere.',
@@ -295,8 +295,8 @@ export const GIOCHI = [
 /** Cornici della proposta: leggere, e con l uscita sempre in vista. */
 export const PROPOSTA_GIOCO = [
   'Vi va di giocare a una cosa? Cinque minuti, poi il telefono torna sul tavolo.',
-  'Ho un gioco, se vi va. Se non vi va lo dite e non se ne parla piu.',
-  'Se avete voglia c e una cosa breve da fare in due.',
+  'Ho un gioco, se vi va. Se non vi va lo dite e non se ne parla più.',
+  'Se avete voglia c\'è una cosa breve da fare in due.',
 ];
 
 /** Cosa si vede se non se ne fa niente: uguale per tutti e due. */

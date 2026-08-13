@@ -535,3 +535,41 @@ Il motore e' completo e testato, ma resta fuori tutto cio' che tocca il mondo:
   metrica pronta, in attesa di un catalogo vero.
 - **Localizzazione.** Numeri di emergenza, stime di percorrenza e catalogo sono
   tarati sull'Italia.
+
+## L'app
+
+`web/` contiene l'applicazione vera e propria: una **PWA installabile**, non un
+mockup. Importa `src/engine.js` e chiama le stesse funzioni che girano nei test
+— il punteggio a schermo esce da `evaluateMatch`, le tre opzioni da
+`proposeLocations`, il codice di riconoscimento da `buildEventCard`, la serata
+da `tickEvening`. L'unica finzione è il tempo, perché un appuntamento è fra
+giorni: c'è un orologio simulato e una striscia per farlo avanzare.
+
+```bash
+npm run web   # http://localhost:4173
+```
+
+**Su Android:** apri l'indirizzo con Chrome (stesso Wi-Fi, usando l'IP del
+computer) e scegli *Installa app* dal menu. Finisce nella home, si apre a
+schermo intero senza barra del browser e funziona **offline** — il service
+worker mette in cache l'app e tutti i moduli del motore. Non è una scorciatoia:
+il motore gira interamente sul dispositivo, e la serata si svolge dentro un
+locale dove la linea può non esserci. Un'app che a quel punto mostra una pagina
+bianca ha fallito proprio nel momento in cui serviva.
+
+Un **APK nativo** richiederebbe l'Android SDK, che non è installato in questo
+ambiente. La PWA è la strada che qui arriva davvero su un telefono.
+
+### Scelte di interfaccia
+
+- **Non sembra un'app di incontri.** Niente bianco, niente rosa, niente volti:
+  non ce ne sono da mostrare. Inchiostro notturno e una sola luce calda, come
+  una candela su un tavolo — è un'app che si usa uscendo di casa, non sul divano.
+- **Serif.** Su Android quasi tutto è Roboto: un carattere con le grazie si
+  riconosce a distanza. Charter dove c'è, Noto Serif sul telefono.
+- **Le azioni stanno in basso**, raggiungibili con il pollice; niente comandi
+  importanti in cima allo schermo.
+- **Niente `alert()`**: gli avvisi sono in linea, perché un popup di sistema
+  rompe l'illusione dell'app nativa.
+- **Solo l'ultimo momento della serata entra in animazione.** La lista viene
+  ridisegnata a ogni tick e animarla tutta la farebbe sfarfallare per due ore.

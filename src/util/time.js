@@ -121,7 +121,7 @@ export function nextOccurrence(from, day, startMin) {
   let deltaDays = (targetIndex - currentIndex + 7) % 7;
 
   date.setHours(Math.floor(startMin / 60), startMin % 60, 0, 0);
-  // Se e' oggi ma l'orario e' gia' passato, si va alla settimana successiva.
+  // Se e' oggi ma l'orario e' già' passato, si va alla settimana successiva.
   if (deltaDays === 0 && date.getTime() <= from.getTime()) deltaDays = 7;
   date.setDate(date.getDate() + deltaDays);
   return date;

@@ -54,7 +54,7 @@ test('il debrief non riporta mai cosa ha pensato l altra persona', () => {
 
 test('il debrief dichiara di non sapere cosa ha pensato l altro', () => {
   const d = buildDebrief(chiusa(), 'u-aaa');
-  assert.match(d.nota, /non sa cosa ha pensato l altra persona/i);
+  assert.match(d.nota, /non sa cosa ha pensato l.altra persona/i);
   assert.match(d.privacy, /non lo vedrai mai/i);
 });
 

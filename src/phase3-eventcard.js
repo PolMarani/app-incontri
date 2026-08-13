@@ -36,7 +36,7 @@ const CODEWORDS = [
 const VISUAL_SIGNS = [
   'un libro o un quaderno appoggiato in verticale sul tavolo',
   'il telefono a faccia in giu sopra un tovagliolo piegato a triangolo',
-  'due bicchieri messi uno accanto all altro anche se sei da solo',
+  'due bicchieri messi uno accanto all\'altro anche se sei da solo',
   'le chiavi appoggiate a destra del bicchiere',
   'una banconota piegata a meta infilata sotto il bicchiere',
   'la giacca appesa allo schienale della sedia di fronte, non alla tua',
@@ -137,7 +137,7 @@ function buildPersonalizedPool(a, b, evaluation, context, rng) {
       pool.push({
         categoria: 'curiosita',
         testo: fill(template, { curiosita: curiosity }),
-        origine: 'curiosita dichiarata nel profilo',
+        origine: 'curiosità dichiarata nel profilo',
         template,
       });
     }
@@ -233,7 +233,7 @@ export function generateIcebreakers(a, b, evaluation, context = {}) {
     const isBase = card.origine === 'mazzo base';
     const templateUses = perTemplate.get(card.template) ?? 0;
     const categoryUses = perCategory.get(card.categoria) ?? 0;
-    // Le quote valgono sulle carte generate dai profili: il mazzo base e' gia'
+    // Le quote valgono sulle carte generate dai profili: il mazzo base e' già'
     // scritto a mano, una carta per idea, e non ha bisogno di essere limitato.
     if (!isBase && templateUses >= MAX_PER_TEMPLATE) continue;
     if (!isBase && categoryUses >= MAX_PER_CATEGORY) continue;
@@ -318,9 +318,9 @@ function generateRecognitionCode(venue, travel, users, rng) {
   return {
     parolaChiave: {
       apertura: `Scusa, aspetti anche tu il ${codeword}?`,
-      risposta: `Si, ma il ${codeword} e sempre in ritardo.`,
+      risposta: `Sì, ma il ${codeword} è sempre in ritardo.`,
       nota:
-        'Se la risposta non arriva esattamente cosi, non e la persona giusta: ' +
+        'Se la risposta non arriva esattamente così, non è la persona giusta: ' +
         'sorridi e vai al punto di ritrovo indicato.',
     },
     puntoDiRitrovo: pick(rng, venue.recognitionSpots),
@@ -395,8 +395,8 @@ export function buildEventCard(a, b, evaluation, chosen, options = {}) {
     ),
     icebreakers,
     promemoria: [
-      'Non esiste chat fra voi: quello che c e da dire si dice li.',
-      'Se cambia qualcosa, si passa dall app: annullare in tempo non e maleducazione.',
+      'Non esiste chat fra voi: quello che c\'è da dire si dice li.',
+      'Se cambia qualcosa, si passa dall\'app: annullare in tempo non è maleducazione.',
     ],
   };
 }
@@ -423,7 +423,7 @@ export function eventCardFor(card, userId) {
         quello_dell_altra_persona: card.riconoscimento.segnoVisivo[otherId],
       },
       arriva_per_primo:
-        card.riconoscimento.arrivaPerPrimo === userId ? 'tu' : 'l altra persona',
+        card.riconoscimento.arrivaPerPrimo === userId ? 'tu' : 'l\'altra persona',
     },
     partecipanti: undefined,
   };

@@ -91,7 +91,7 @@ test('chi subisce l annullamento non viene colpevolizzato e ha la priorita', () 
   const plan = piano();
   const esito = cancelMeeting(plan, { da: 'u-aaa', motivo: 'imprevisto', now: t(-300) });
   const avvisoAllAltro = esito.notifiche.find((n) => n.utente === 'u-bbb');
-  assert.match(avvisoAllAltro.testo, /priorita/i);
+  assert.match(avvisoAllAltro.testo, /priorit(a|à)/i);
   assert.ok(avvisoAllAltro.azioni.includes('parla_con_qualcuno'));
   assert.deepEqual(esito.supportoOfferto, ['u-bbb']);
 });
@@ -140,7 +140,7 @@ test('il no-show viene confermato e l incontro chiuso dopo 35 minuti', () => {
   const esito = advance(plan, { now: t(36) });
   const avviso = esito.azioni.find((a) => a.tipo === 'no_show_confermato');
   assert.ok(avviso);
-  assert.match(avviso.testo, /non e una cosa che ti riguarda/i);
+  assert.match(avviso.testo, /non (e|è) una cosa che ti riguarda/i);
   assert.equal(plan.state, 'annullato');
 });
 
@@ -198,7 +198,7 @@ test('il supporto mostra sempre i numeri di emergenza e dichiara i propri limiti
   const canale = openSupportChannel(plan, { utente: 'u-aaa', motivo: 'no_show' });
   assert.ok(canale.risorse.some((r) => r.numero === '112'));
   assert.ok(canale.risorse.some((r) => r.numero === '1522'));
-  assert.match(canale.limiti, /non e un professionista/i);
+  assert.match(canale.limiti, /non (e|è) un professionista/i);
 });
 
 test('aprire il supporto non manda nessun segnale all altra persona', () => {
@@ -278,7 +278,7 @@ test('fuori orario non si promette un operatore che non c e', () => {
   const copertura = coperturaUmana(martedMattina);
   assert.equal(copertura.attiva, false);
   assert.ok(copertura.richiamoEntroMin > 0);
-  assert.match(copertura.nota, /non e in turno/i);
+  assert.match(copertura.nota, /non (e|è) in turno/i);
   assert.match(copertura.nota, /presidiati adesso/i);
 });
 
@@ -297,7 +297,7 @@ test('il canale umano dice la verita sui tempi, in turno e fuori', () => {
     now: new Date('2026-08-11T09:00:00+02:00'),
   });
   assert.equal(fuoriTurno.copertura.attiva, false);
-  assert.match(fuoriTurno.trasparenza, /non e in turno/i);
+  assert.match(fuoriTurno.trasparenza, /non (e|è) in turno/i);
   // Fuori orario i numeri veri restano comunque in primo piano.
   assert.ok(fuoriTurno.risorse.some((r) => r.numero === '112'));
 });

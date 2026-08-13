@@ -58,7 +58,7 @@ export const INTEREST_FAMILIES = {
   collezioni: ['piante', 'sneakers', 'modellismo', 'vintage', 'francobolli', 'vinili'],
 };
 
-/** Indice inverso tag -> famiglie (un tag puo' stare in piu' famiglie). */
+/** Indice inverso tag -> famiglie (un tag puo' stare in più' famiglie). */
 const TAG_TO_FAMILIES = (() => {
   /** @type {Map<string, Set<string>>} */
   const index = new Map();
@@ -161,12 +161,12 @@ export function vibeSimilarity(vibeA, vibeB) {
 
 /** Etichette leggibili, usate nella scheda evento e nelle opzioni anonime. */
 export const VIBE_LABELS = {
-  caffe_tranquillo: 'caffe tranquillo',
+  caffe_tranquillo: 'caffè tranquillo',
   bar_serale: 'bar serale',
   aperitivo: 'aperitivo',
   parco: 'parco',
   passeggiata: 'passeggiata',
-  libreria: 'libreria con caffe',
+  libreria: 'libreria con caffè',
   museo: 'museo',
   mostra: 'mostra',
   mercato: 'mercato coperto',
@@ -178,7 +178,7 @@ export const VIBE_LABELS = {
 /** Etichette leggibili degli interessi (fallback: il tag con gli underscore sciolti). */
 export function interestLabel(tag) {
   const custom = {
-    caffe_specialty: 'caffe specialty',
+    caffe_specialty: 'caffè specialty',
     giochi_da_tavolo: 'giochi da tavolo',
     produzione_musicale: 'produzione musicale',
     true_crime: 'true crime',

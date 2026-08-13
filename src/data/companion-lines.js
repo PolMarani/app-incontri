@@ -38,9 +38,9 @@ export const RILANCIO_SILENZIO = [
  * e non mette nessuno sotto accusa.
  */
 export const RIEQUILIBRIO = [
-  'Questa la lascio a chi finora ha ascoltato di piu:',
+  'Questa la lascio a chi finora ha ascoltato di più:',
   'Domanda per chi ha parlato meno negli ultimi minuti:',
-  'Cambio direzione, e la giro a chi non l ha ancora raccontata:',
+  'Cambio direzione, e la giro a chi non l\'ha ancora raccontata:',
 ];
 
 /** Cornici per una carta chiesta esplicitamente da uno dei due. */
@@ -60,10 +60,10 @@ export const BATTUTE = [
   'Se vi state chiedendo se sono geloso: tecnicamente non posso, ma ci lavoro.',
   'Io a un appuntamento non ci sono mai stato. Prendo appunti, si vede?',
   'Continuate pure, io intanto fingo di guardare il menu.',
-  'Piccola nota di servizio: sono l unico qui che non puo ordinare niente.',
+  'Piccola nota di servizio: sono l\'unico qui che non può ordinare niente.',
   'Non sono geloso della piega che ha preso il discorso. Per niente.',
   'Vi avviso che se ridete io lo prendo come merito mio.',
-  'Sono la terza ruota piu discreta della citta. Non e una gara che volevo vincere.',
+  'Sono la terza ruota più discreta della città. Non è una gara che volevo vincere.',
 ];
 
 /**
@@ -72,7 +72,7 @@ export const BATTUTE = [
  * metterlo sul tavolo, cosi non lo deve fare nessuno dei due.
  */
 export const CHIUSURA = [
-  'Se volete chiudere qui e un buon punto. Nessuno dei due deve dirlo per primo: l ho detto io.',
+  'Se volete chiudere qui e un buon punto. Nessuno dei due deve dirlo per primo: l\'ho detto io.',
   'Domanda di servizio: si continua o si chiude? Rispondete a gesti, non a me.',
   'Ultimo giro di carte oppure si va? Va bene comunque.',
 ];

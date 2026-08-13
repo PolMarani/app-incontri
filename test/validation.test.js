@@ -97,7 +97,7 @@ test('una curiosita con un contatto dentro blocca il profilo, e spiega perche', 
   const esito = validateProfile(p);
   assert.equal(esito.valido, false);
   assert.ok(esito.errori.some((e) => /numero di telefono/.test(e)));
-  assert.ok(esito.errori.some((e) => /letti dall altra persona/.test(e)));
+  assert.ok(esito.errori.some((e) => /letti dall.altra persona/.test(e)));
 });
 
 test('una curiosita lunghissima viene rifiutata', () => {

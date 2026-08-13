@@ -61,7 +61,7 @@ export const VENUES = [
   },
   {
     id: 'v-sempione-parco',
-    name: 'Parco Sempione - chiosco dell Arena',
+    name: 'Parco Sempione - chiosco dell\'Arena',
     address: 'Viale Giorgio Byron, Milano',
     location: { lat: 45.4749, lon: 9.1739 },
     vibes: ['parco', 'passeggiata'],
@@ -131,7 +131,7 @@ export const VENUES = [
       servesAlcohol: false, wheelchairAccess: true, outdoor: true, noiseLevel: 'medio',
     },
     safetyScore: 0.88,
-    atmosphere: 'coda breve, panchine sull acqua a due passi, si cammina mangiando',
+    atmosphere: 'coda breve, panchine sull\'acqua a due passi, si cammina mangiando',
     recognitionSpots: ['la panchina di fronte alla vetrina', 'il ponte pedonale'],
   },
   {
@@ -192,7 +192,7 @@ export const VENUES = [
     },
     safetyScore: 0.84,
     atmosphere: 'piste da corsa, cani, famiglie, un chiosco con quattro tavolini',
-    recognitionSpots: ['il chiosco', 'la fontanella all ingresso di via Montevideo'],
+    recognitionSpots: ['il chiosco', 'la fontanella all\'ingresso di via Montevideo'],
   },
   {
     id: 'v-loreto-live',
@@ -206,7 +206,7 @@ export const VENUES = [
       servesAlcohol: true, wheelchairAccess: true, outdoor: false, noiseLevel: 'alto',
     },
     safetyScore: 0.8,
-    atmosphere: 'sala concerti piccola con un bar davanti, si parla nell intervallo',
+    atmosphere: 'sala concerti piccola con un bar davanti, si parla nell\'intervallo',
     recognitionSpots: ['il bar prima della sala', 'il guardaroba'],
   },
   {
@@ -222,7 +222,7 @@ export const VENUES = [
     },
     safetyScore: 0.96,
     atmosphere: 'vetrate sulla piazza, poltrone basse, silenzio da museo anche al bar',
-    recognitionSpots: ['il tavolino d angolo con vista sulla piazza', 'la scala elicoidale'],
+    recognitionSpots: ['il tavolino d\'angolo con vista sulla piazza', 'la scala elicoidale'],
   },
   {
     id: 'v-bicocca-bar',

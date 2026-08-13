@@ -1,7 +1,7 @@
 /**
  * FASE 7 - Momenti di affetto.
  *
- * Durante la serata l'app puo' proporre un gesto fisico: un brindisi, un
+ * Durante la serata l'app può' proporre un gesto fisico: un brindisi, un
  * contatto di mano, un bacio sulla guancia, un abbraccio breve, un abbraccio di
  * venti secondi. Arrivano in momenti imprevedibili, non a orari fissi.
  *
@@ -13,7 +13,7 @@
  * e' una cosa che si subisce per non fare una figuraccia. Un gesto fatto per
  * imbarazzo e' esattamente il contrario di un gesto affettuoso.
  *
- * Quindi vale la stessa forma della Fase 2, che l'app usa gia' per la
+ * Quindi vale la stessa forma della Fase 2, che l'app usa già' per la
  * location:
  *
  *  1. La proposta arriva **separatamente** sullo schermo di ciascuno.
@@ -88,7 +88,7 @@ export function createAffectionTrack(eventCard, options = {}) {
       motivo:
         senzaContatto.length > 0
           ? 'Almeno una delle due persone ha dichiarato di non volere contatto fisico: ' +
-            'la funzione resta spenta per entrambi e nessuno vedra mai una proposta.'
+            'la funzione resta spenta per entrambi e nessuno vedrà mai una proposta.'
           : 'Serve il consenso esplicito di entrambi.',
     };
   }
@@ -98,8 +98,8 @@ export function createAffectionTrack(eventCard, options = {}) {
     attivo: true,
     promessa: [
       'Ogni proposta la vedi solo tu.',
-      'Serve il si di tutti e due, e non saprai mai cosa ha risposto l altra persona.',
-      'Rifiutare costa un tocco, non lascia traccia e non ti viene chiesto il perche.',
+      'Serve il si di tutti e due, e non saprai mai cosa ha risposto l\'altra persona.',
+      'Rifiutare costa un tocco, non lascia traccia e non ti viene chiesto il perché.',
     ],
   };
 }
@@ -119,7 +119,7 @@ export function bloccaPerSicurezza(track) {
 }
 
 /**
- * Prossimo gradino ammesso: uno sopra l'ultimo accettato, mai di piu'.
+ * Prossimo gradino ammesso: uno sopra l'ultimo accettato, mai di più'.
  * @param {ReturnType<typeof createAffectionTrack>} track
  */
 function prossimaIntensita(track) {

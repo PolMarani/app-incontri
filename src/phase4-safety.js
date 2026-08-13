@@ -2,7 +2,7 @@
  * FASE 4 - Sicurezza, conferme e supporto.
  *
  * Un'app che manda due sconosciuti a incontrarsi di persona, senza chat e senza
- * foto, si prende due responsabilita' che non puo' scaricare sull'utente:
+ * foto, si prende due responsabilita' che non può' scaricare sull'utente:
  *
  *  1. Ridurre il buco a vuoto. Le conferme a T-24h, T-6h e T-1h esistono per
  *     far cadere in anticipo gli incontri che non si terranno, invece di
@@ -36,7 +36,7 @@ export const MEETING_STATES = /** @type {const} */ ([
 export const CHECKPOINTS = [
   { id: 'T-24h', offsetMs: 24 * HOUR, graceMinutes: 240, label: 'un giorno prima' },
   { id: 'T-6h', offsetMs: 6 * HOUR, graceMinutes: 120, label: 'sei ore prima' },
-  { id: 'T-1h', offsetMs: 1 * HOUR, graceMinutes: 30, label: 'un ora prima' },
+  { id: 'T-1h', offsetMs: 1 * HOUR, graceMinutes: 30, label: 'un\'ora prima' },
 ];
 
 /** Finestra di check-in di arrivo al locale. */
@@ -64,8 +64,8 @@ export const COPERTURA_SUPPORTO = {
   fuoriOrario: {
     richiamoEntroMin: 60,
     messaggio:
-      'A quest ora il team non e in turno. Resto io, e un operatore ti richiama ' +
-      'appena rientra. Se la cosa non puo aspettare usa i numeri qui sotto: ' +
+      'A quest ora il team non è in turno. Resto io, e un operatore ti richiama ' +
+      'appena rientra. Se la cosa non può aspettare usa i numeri qui sotto: ' +
       'quelli sono presidiati adesso.',
   },
 };
@@ -102,7 +102,7 @@ export function coperturaUmana(now = new Date()) {
 /** Numeri utili mostrati insieme al supporto. In produzione sono per paese. */
 export const EMERGENCY_RESOURCES = [
   { nome: 'Emergenza (polizia, ambulanza)', numero: '112', quando: 'pericolo immediato' },
-  { nome: 'Antiviolenza e stalking', numero: '1522', quando: 'molestie, violenza, stalking - attivo 24/7 e gratuito' },
+  { nome: 'Antiviolenza e stalking', numero: '1522', quando: 'molestie, violenza, stalking - attivo 24/7 è gratuito' },
   { nome: 'Telefono Amico', numero: '02 2327 2327', quando: 'disagio emotivo, bisogno di parlare' },
 ];
 
@@ -122,8 +122,8 @@ export const SAFETY_ACTIONS = [
     id: 'uscita_assistita',
     etichetta: 'Fammi uscire',
     descrizione:
-      'L app ti chiama fingendo un imprevisto e ti manda il percorso di uscita ' +
-      'piu vicino. Nessuna notifica all altra persona.',
+      'L\'app ti chiama fingendo un imprevisto e ti manda il percorso di uscita ' +
+      'più vicino. Nessuna notifica all\'altra persona.',
     discreto: true,
   },
   {
@@ -145,13 +145,13 @@ export const SAFETY_ACTIONS = [
   {
     id: 'supporto',
     etichetta: 'Parla con qualcuno',
-    descrizione: 'Apre il canale di supporto: assistente dell app o operatore umano.',
+    descrizione: 'Apre il canale di supporto: assistente dell\'app o operatore umano.',
     discreto: true,
   },
   {
     id: 'emergenza',
     etichetta: 'Emergenza',
-    descrizione: 'Chiamata diretta al 112 con la posizione gia pronta da leggere.',
+    descrizione: 'Chiamata diretta al 112 con la posizione già pronta da leggere.',
     discreto: false,
   },
 ];
@@ -215,14 +215,14 @@ export function confirmCheckpoint(plan, userId, checkpointId, options = {}) {
     return { ok: false, messaggio: 'Utente non associato a questo incontro' };
   }
   if (plan.state === 'annullato') {
-    return { ok: false, messaggio: 'Incontro gia annullato' };
+    return { ok: false, messaggio: 'Incontro già annullato' };
   }
   const checkpoint = plan.checkpoints.find((cp) => cp.id === checkpointId);
   if (!checkpoint) {
     return { ok: false, messaggio: `Checkpoint ${checkpointId} non previsto` };
   }
   if (now.getTime() > checkpoint.deadlineAt.getTime()) {
-    return { ok: false, messaggio: 'Termine scaduto: la conferma non e piu valida' };
+    return { ok: false, messaggio: 'Termine scaduto: la conferma non è più valida' };
   }
 
   checkpoint.confermato[userId] = true;
@@ -241,8 +241,8 @@ export function confirmCheckpoint(plan, userId, checkpointId, options = {}) {
   return {
     ok: true,
     messaggio: tutti
-      ? 'Confermato da entrambi: l incontro resta in piedi.'
-      : 'Conferma registrata. Manca ancora l altra persona.',
+      ? 'Confermato da entrambi: l\'incontro resta in piedi.'
+      : 'Conferma registrata. Manca ancora l\'altra persona.',
   };
 }
 
@@ -266,8 +266,8 @@ export function cancelMeeting(plan, { da, motivo, now = new Date() }) {
       testo:
         id === da
           ? 'Incontro annullato. Nessun problema: il tuo profilo torna in circolo da subito.'
-          : 'L incontro non si fara. Non e successo niente di personale: capita, ed e ' +
-            'per questo che esistono le conferme. Hai la priorita sul prossimo abbinamento.',
+          : 'L\'incontro non si farà. Non è successo niente di personale: capita, ed e ' +
+            'per questo che esistono le conferme. Hai la priorità sul prossimo abbinamento.',
       azioni: id === da ? ['rimetti_in_circolo'] : ['rimetti_in_circolo', 'parla_con_qualcuno'],
     })),
     supportoOfferto: altro ? [altro] : [],
@@ -294,7 +294,7 @@ export function advance(plan, options = {}) {
     return { stato: plan.state, azioni };
   }
 
-  // Se qualcuno e' gia' sul posto, le conferme non contano piu': annullare un
+  // Se qualcuno e' già' sul posto, le conferme non contano piu': annullare un
   // incontro sotto il naso di chi e' seduto al tavolo sarebbe il peggiore dei
   // comportamenti possibili, checkpoint scaduto o no.
   const qualcunoEArrivato = Object.values(plan.arrivi).some(Boolean);
@@ -331,7 +331,7 @@ export function advance(plan, options = {}) {
           utente: id,
           testo:
             `Conferma ${cp.label}: ci sei? Se non confermi entro ` +
-            `${Math.round((cp.deadlineAt - now) / MINUTE)} minuti l incontro si annulla ` +
+            `${Math.round((cp.deadlineAt - now) / MINUTE)} minuti l'incontro si annulla ` +
             'da solo, senza penalita.',
         });
       }
@@ -361,9 +361,9 @@ export function advance(plan, options = {}) {
         tipo: 'no_show_confermato',
         utente: arrivati[0],
         testo:
-          'Non e arrivato nessuno e ci dispiace davvero. Non e una cosa che ti ' +
-          'riguarda. La serata la chiudiamo qui: hai la priorita sul prossimo ' +
-          'abbinamento e, se ti va, c e qualcuno con cui parlarne adesso.',
+          'Non è arrivato nessuno e ci dispiace davvero. Non è una cosa che ti ' +
+          'riguarda. La serata la chiudiamo qui: hai la priorità sul prossimo ' +
+          'abbinamento e, se ti va, c\'è qualcuno con cui parlarne adesso.',
       });
       cancelMeeting(plan, { motivo: 'No-show confermato', now });
     } else if (minutiDaInizio >= NO_SHOW_SUSPECTED_MIN) {
@@ -371,7 +371,7 @@ export function advance(plan, options = {}) {
         tipo: 'no_show_sospetto',
         utente: arrivati[0],
         testo:
-          'L altra persona non ha ancora fatto check-in. Aspetta ancora un quarto ' +
+          'L\'altra persona non ha ancora fatto check-in. Aspetta ancora un quarto ' +
           'd ora: se non arriva ti avvisiamo noi e non devi fare niente. ' +
           'Intanto, se vuoi, apriamo il supporto.',
       });
@@ -416,7 +416,7 @@ export function checkIn(plan, userId, options = {}) {
     entrambiPresenti: entrambi,
     messaggio: entrambi
       ? 'Ci siete tutti e due. Da qui in poi il telefono serve solo per le carte.'
-      : 'Check-in registrato. Se l altra persona non arriva entro venti minuti ti avvisiamo noi.',
+      : 'Check-in registrato. Se l\'altra persona non arriva entro venti minuti ti avvisiamo noi.',
   };
 }
 
@@ -453,7 +453,7 @@ export function confermaSegno(plan, userId, { corrisponde, now = new Date() }) {
       corrisponde: false,
       allerta: true,
       messaggio:
-        'Non forzare la situazione e non chiedere spiegazioni. Resta dove c e ' +
+        'Non forzare la situazione e non chiedere spiegazioni. Resta dove c\'è ' +
         'gente, apri il supporto e se vuoi ti facciamo uscire noi.',
       azioni: ['supporto', 'uscita_assistita', 'avvisa_staff'],
       motivoSupporto: 'comportamento_da_segnalare',
@@ -470,7 +470,7 @@ export function confermaSegno(plan, userId, { corrisponde, now = new Date() }) {
     reciproca: entrambi,
     messaggio: entrambi
       ? 'Vi siete riconosciuti entrambi. Da qui in poi il telefono serve solo per le carte.'
-      : 'Segnato. Manca la conferma dell altra persona.',
+      : 'Segnato. Manca la conferma dell\'altra persona.',
   };
 }
 
@@ -492,26 +492,26 @@ const SUPPORT_ROUTING = {
 /** Aperture del canale, per motivo. Tono: concreto, mai paternalistico. */
 const SUPPORT_OPENERS = {
   ansia_pre_date:
-    'Manca poco e ti sta salendo l ansia. E normalissimo, e non sei obbligato a ' +
+    'Manca poco e ti sta salendo l ansia. È normalissimo, e non sei obbligato a ' +
     'andare: possiamo anche solo ragionarci su per cinque minuti.',
   partner_non_risponde:
     'Non hai ancora ricevuto la conferma e stai pensando che salti tutto. ' +
-    'Vediamo insieme come stai messo, e ricorda che se salta non e per colpa tua.',
+    'Vediamo insieme come stai messo, e ricorda che se salta non è per colpa tua.',
   ritardo:
     'Sta tardando. Prima di decidere se restare o andartene: quanto tempo ti va ' +
-    'di aspettare? Decidiamo un limite adesso, cosi non ci pensi piu.',
+    'di aspettare? Decidiamo un limite adesso, così non ci pensi più.',
   no_show:
-    'Non e venuto nessuno. E una cosa brutta da vivere e non dice niente di te. ' +
+    'Non è venuto nessuno. E una cosa brutta da vivere e non dice niente di te. ' +
     'Se vuoi ne parliamo, se preferisci ti lascio in pace: dimmi solo quale delle due.',
   disagio_durante:
-    'Ci sei ancora dentro. La priorita adesso e farti uscire: ti passo un operatore ' +
+    'Ci sei ancora dentro. La priorità adesso e farti uscire: ti passo un operatore ' +
     'e intanto guarda le opzioni qui sotto.',
   mi_sento_in_pericolo:
     'Ti metto subito in contatto con una persona vera. Se sei in pericolo immediato ' +
-    'chiama il 112: puoi farlo da qui e la posizione e gia pronta.',
+    'chiama il 112: puoi farlo da qui e la posizione e già pronta.',
   comportamento_da_segnalare:
     'Grazie per averlo detto. Prende in carico una persona del team: la segnalazione ' +
-    'ha effetto sull altro profilo, non sul tuo.',
+    'ha effetto sull\'altro profilo, non sul tuo.',
   post_date:
     'Com e andata? Non serve un voto, se ti va raccontala e basta.',
 };
@@ -550,7 +550,7 @@ export function openSupportChannel(plan, { utente, motivo, testoLibero, now = ne
   const trasparenza = (() => {
     if (canale === 'assistente_ai') {
       return (
-        'Stai parlando con l assistente di BlindStep, non con una persona. ' +
+        'Stai parlando con l\'assistente di BlindStep, non con una persona. ' +
         'Scrivi "operatore" in qualsiasi momento e ti passo qualcuno in carne e ossa.'
       );
     }
@@ -573,8 +573,8 @@ export function openSupportChannel(plan, { utente, motivo, testoLibero, now = ne
       'chiedere di cancellare quello che hai scritto',
     ],
     limiti:
-      'L assistente non e un professionista della salute mentale e non fa diagnosi. ' +
-      'Per un supporto continuativo il team puo indirizzarti a un servizio dedicato.',
+      'L\'assistente non è un professionista della salute mentale e non fa diagnosi. ' +
+      'Per un supporto continuativo il team può indirizzarti a un servizio dedicato.',
     risorse: EMERGENCY_RESOURCES,
     azioniRapide: SAFETY_ACTIONS.filter((a) =>
       canale === 'operatore_umano'

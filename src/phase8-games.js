@@ -19,7 +19,7 @@
  *  - **si propone nei momenti piatti**, quando la serata gira a vuoto ma il
  *    clima non e' brutto;
  *  - **due giochi a serata al massimo**, con almeno venticinque minuti in mezzo;
- *  - **piu' la serata avanza, piu' si preferiscono i giochi `solo_avvio`**,
+ *  - **piu' la serata avanza, più' si preferiscono i giochi `solo_avvio`**,
  *    quelli in cui l'app da' una regola e poi il telefono torna sul tavolo.
  *
  * Questo modulo decide solo se un gioco *avrebbe senso* adesso. Se poi il
@@ -75,7 +75,7 @@ export function createGameTrack(eventCard, options = {}) {
 /**
  * Prepara la partita: pesca il materiale e costruisce i payload.
  *
- * Alcuni giochi non mostrano la stessa cosa ai due schermi - `L infiltrato`
+ * Alcuni giochi non mostrano la stessa cosa ai due schermi - `L'infiltrato`
  * consegna una bugia a una sola persona (o a nessuna), ed e' tutto il gioco.
  * Per questo il ritorno distingue `comune` da `perUtente`.
  *
@@ -240,14 +240,14 @@ export function respondGame(track, propostaId, userId, { accetta, t }) {
   proposta.risposte[userId] = Boolean(accetta);
 
   // Un no basta e chiude subito: far aspettare l'altra risposta quando la
-  // partita e' gia' saltata tiene il telefono acceso per niente.
+  // partita e' già' saltata tiene il telefono acceso per niente.
   if (!accetta) {
     proposta.stato = 'rifiutata';
     return { stato: 'rifiutata', messaggio: GIOCO_NON_FATTO };
   }
 
   const tutti = track.partecipanti.every((id) => proposta.risposte[id] === true);
-  if (!tutti) return { stato: 'in_attesa', messaggio: 'Ok. Aspetto l altra risposta.' };
+  if (!tutti) return { stato: 'in_attesa', messaggio: 'Ok. Aspetto l\'altra risposta.' };
 
   proposta.stato = 'accettata';
   const gioco = GIOCHI.find((g) => g.id === proposta.giocoId);
@@ -280,7 +280,7 @@ export function completeGame(track, propostaId, options = {}) {
   const proposta = track.proposte.find((p) => p.id === propostaId);
   if (!proposta) throw new Error(`Proposta ${propostaId} inesistente`);
   if (proposta.stato !== 'accettata') {
-    return { ok: false, messaggio: 'Questa partita non e mai cominciata' };
+    return { ok: false, messaggio: 'Questa partita non è mai cominciata' };
   }
   const gioco = GIOCHI.find((g) => g.id === proposta.giocoId);
   proposta.stato = options.abbandonato ? 'abbandonato' : 'finito';

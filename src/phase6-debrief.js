@@ -2,7 +2,7 @@
  * FASE 6 - Debrief post-incontro.
  *
  * Il compagno ha ascoltato tutta la sera; adesso deve restituire qualcosa che
- * serva davvero a chi era al tavolo. E' la parte piu' facile da sbagliare
+ * serva davvero a chi era al tavolo. E' la parte più' facile da sbagliare
  * dell'intera app, quindi le regole sono poche e rigide.
  *
  *  1. IL DEBRIEF E' PRIVATO E ASIMMETRICO. Ognuno vede solo il proprio, e il
@@ -76,7 +76,7 @@ export function buildDebrief(sessione, userId) {
       utente: userId,
       disponibile: false,
       motivo:
-        'Il compagno era spento, quindi non c e niente da raccontare. ' +
+        'Il compagno era spento, quindi non c\'è niente da raccontare. ' +
         'Il debrief esiste solo se lo avete acceso entrambi.',
     };
   }
@@ -96,11 +96,11 @@ export function buildDebrief(sessione, userId) {
     funzionato.push('La conversazione si e retta quasi sempre da sola.');
   }
   if (quotaMia >= 0.4 && quotaMia <= 0.6) {
-    funzionato.push('Vi siete divisi lo spazio in modo equilibrato, ed e piu raro di quanto sembri.');
+    funzionato.push('Vi siete divisi lo spazio in modo equilibrato, ed e più raro di quanto sembri.');
   }
   const migliore = cartaMigliore(sessione.carteGiocate);
   if (migliore && (migliore.risateDopo > 0 || migliore.energiaDopo >= 0.6)) {
-    funzionato.push(`La cosa che ha acceso di piu la conversazione: "${migliore.testo}"`);
+    funzionato.push(`La cosa che ha acceso di più la conversazione: "${migliore.testo}"`);
   }
   if (funzionato.length === 0) {
     funzionato.push('Ci siete andati, che e la parte che quasi nessuno fa.');
@@ -114,20 +114,20 @@ export function buildDebrief(sessione, userId) {
       osservazione: `Hai tenuto il campo per circa ${Math.round(quotaMia * 100)}% del tempo.`,
       prova:
         'La prossima volta prova a chiudere un tuo racconto con una domanda invece ' +
-        'che con una conclusione: e il modo piu semplice di passare la palla.',
+        'che con una conclusione: e il modo più semplice di passare la palla.',
     };
   } else if (quotaMia <= SOGLIA_SILENZIO) {
     daProvare = {
       osservazione: `Hai parlato per circa ${Math.round(quotaMia * 100)}% del tempo.`,
       prova:
-        'Non c e niente di sbagliato nell ascoltare. Ma prova a portare una cosa tua ' +
+        'Non c\'è niente di sbagliato nell ascoltare. Ma prova a portare una cosa tua ' +
         'senza aspettare che te la chiedano: quasi nessuno la chiede.',
     };
   } else if (m.domande <= 2 && sessione.durataMin >= 60) {
     daProvare = {
       osservazione: `In ${sessione.durataMin} minuti sono state fatte ${m.domande} domande in tutto.`,
       prova:
-        'Una domanda in piu sulla cosa che l altro ha appena detto vale piu di ' +
+        'Una domanda in più sulla cosa che l\'altro ha appena detto vale più di ' +
         'un argomento nuovo: e il punto in cui una conversazione diventa un discorso.',
     };
   }
@@ -142,9 +142,9 @@ export function buildDebrief(sessione, userId) {
     daProvare,
     carteUsate: sessione.carteGiocate.length,
     nota:
-      'Questo l ha scritto il compagno guardando solo il tuo modo di stare nella ' +
-      'conversazione. Non sa cosa ha pensato l altra persona e non glielo ha chiesto.',
-    privacy: 'Il debrief dell altra persona e diverso dal tuo e tu non lo vedrai mai.',
+      'Questo l\'ha scritto il compagno guardando solo il tuo modo di stare nella ' +
+      'conversazione. Non sa cosa ha pensato l\'altra persona e non glielo ha chiesto.',
+    privacy: 'Il debrief dell\'altra persona è diverso dal tuo e tu non lo vedrai mai.',
   };
 }
 
@@ -215,7 +215,7 @@ export function apriScambioContatti(sessione, options = {}) {
     contatti: {},
     domanda:
       'Ti va di scambiare un contatto? Lo vedrete solo se lo volete tutti e due, ' +
-      'e non saprai mai cosa ha risposto l altra persona.',
+      'e non saprai mai cosa ha risposto l\'altra persona.',
   };
 }
 
@@ -231,15 +231,15 @@ export function rispondiScambioContatti(scambio, userId, { vuole, contatto, now 
     throw new Error(`Utente ${userId} non fa parte di questo incontro`);
   }
   if (now > scambio.scadenza) {
-    return { ok: false, messaggio: 'La finestra si e chiusa. Va bene cosi.' };
+    return { ok: false, messaggio: 'La finestra si e chiusa. Va bene così.' };
   }
   scambio.scelte[userId] = Boolean(vuole);
   if (vuole && contatto) scambio.contatti[userId] = contatto;
   return {
     ok: true,
     messaggio: vuole
-      ? 'Segnato. Se anche l altra persona vuole, vi arriva il contatto.'
-      : 'Segnato, e non lo sapra nessuno.',
+      ? 'Segnato. Se anche l\'altra persona vuole, vi arriva il contatto.'
+      : 'Segnato, e non lo saprà nessuno.',
   };
 }
 
@@ -267,14 +267,14 @@ export function chiudiScambioContatti(scambio, options = {}) {
             ? {
                 scambiato: true,
                 contatto: scambio.contatti[altro] ?? null,
-                messaggio: 'Vi siete scelti tutti e due. Da qui in poi non c entriamo piu.',
+                messaggio: 'Vi siete scelti tutti e due. Da qui in poi non c entriamo più.',
               }
             : {
                 scambiato: false,
                 contatto: null,
                 // Identico per chi ha detto no, per chi ha detto si e per chi
                 // non ha risposto: e' il punto di tutta la funzione.
-                messaggio: 'Non se ne fa niente. Non c e altro da sapere.',
+                messaggio: 'Non se ne fa niente. Non c\'è altro da sapere.',
               },
         ];
       }),
