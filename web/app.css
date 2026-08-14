@@ -620,3 +620,82 @@ p.testo.piccolo { font-size: 15px; }
 /* Testo selezionabile solo dove ha senso copiarlo: indirizzo e parola chiave. */
 body { -webkit-user-select: none; user-select: none; }
 .carta-chiara, .avviso { -webkit-user-select: text; user-select: text; }
+
+/* --- Onboarding ----------------------------------------------------------- */
+
+.avanzamento { display: flex; gap: 5px; margin: 4px 0 26px; }
+.avanzamento span {
+  flex: 1; height: 2px; border-radius: 2px; background: var(--bordo);
+  transition: background 0.35s ease;
+}
+.avanzamento span.fatto { background: var(--candela); }
+
+.punto { display: flex; gap: 14px; padding: 11px 0; align-items: flex-start; }
+.punto + .punto { border-top: 1px solid var(--bordo-tenue); }
+.punto .segnale {
+  font-family: var(--mono); font-size: 11px; color: var(--candela);
+  flex: none; padding-top: 3px; min-width: 20px;
+}
+.punto div { color: var(--carta-2); font-size: 15.5px; }
+.punto b { color: var(--carta); font-weight: 400; }
+
+.chip-riga { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip-ob {
+  font-family: var(--serif); font-size: 15px;
+  padding: 11px 16px; min-height: 44px;
+  border-radius: 100px; border: 1px solid var(--bordo);
+  background: transparent; color: var(--carta-2); cursor: pointer;
+  transition: all 0.16s ease;
+}
+.chip-ob:active { transform: scale(0.96); }
+.chip-ob[aria-pressed='true'] {
+  background: var(--candela); border-color: var(--candela); color: #17120b;
+}
+
+/* Interruttore: la leva si vede da lontano, perché è la cosa che concede
+   qualcosa e non deve mai essere ambigua. */
+.interruttore {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  background: none; border: none; border-top: 1px solid var(--bordo-tenue);
+  padding: 16px 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.pannello .interruttore:first-of-type, .schermata > .interruttore:first-of-type { border-top: none; }
+.interruttore .testi { flex: 1; min-width: 0; }
+.interruttore .t { display: block; font-size: 17px; }
+.interruttore .d { display: block; color: var(--tenue); font-size: 14px; margin-top: 3px; line-height: 1.45; }
+.interruttore .leva {
+  flex: none; width: 48px; height: 28px; border-radius: 100px;
+  background: var(--notte-3); border: 1px solid var(--bordo);
+  position: relative; transition: background 0.22s ease, border-color 0.22s ease;
+}
+.interruttore .leva span {
+  position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--tenue);
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), background 0.22s ease;
+}
+.interruttore[aria-pressed='true'] .leva { background: rgba(227, 167, 101, 0.25); border-color: var(--candela); }
+.interruttore[aria-pressed='true'] .leva span { transform: translateX(20px); background: var(--candela); }
+
+/* Il singolo interruttore fuori da un pannello si presenta come una scheda. */
+.onboarding .interruttore {
+  border: 1px solid var(--bordo-tenue); border-radius: var(--r-l);
+  padding: 18px; margin-bottom: 12px;
+  background: linear-gradient(168deg, var(--notte-2), var(--notte));
+}
+.onboarding .interruttore[aria-pressed='true'] { border-color: rgba(227, 167, 101, 0.32); }
+
+.campo {
+  width: 100%; background: var(--nero); color: var(--carta);
+  border: 1px solid var(--bordo); border-radius: var(--r-m);
+  padding: 13px 14px; font-family: var(--serif); font-size: 16px;
+  resize: none; line-height: 1.5;
+}
+.campo::placeholder { color: var(--tenue-2); font-style: italic; }
+.campo:focus { border-color: var(--candela-fonda); outline: none; }
+
+.conta { font-family: var(--mono); font-size: 11px; color: var(--tenue-2); text-align: right; margin: 6px 0 0; }
+.errore-campo {
+  color: var(--allarme); font-size: 14.5px; margin: 10px 0 0;
+  border-left: 2px solid var(--allarme); padding-left: 10px;
+}

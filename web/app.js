@@ -34,14 +34,30 @@ import {
   tickEvening,
 } from '../src/engine.js';
 import { EMERGENCY_RESOURCES, SAFETY_ACTIONS } from '../src/phase4-safety.js';
+import { validateProfile, contieneContatti } from '../src/engine.js';
 import { sampleProfile, SAMPLE_PROFILES } from '../src/data/sample-profiles.js';
+import {
+  PASSI,
+  costruisciProfilo,
+  datiVuoti,
+  scegli,
+  vistaOnboarding,
+} from './onboarding.js';
 
 // ---------------------------------------------------------------------------
 // Stato
 // ---------------------------------------------------------------------------
 
-const IO = 'u-7f3a';
 const INIZIO_SIMULAZIONE = '2026-08-12T10:00:00+02:00';
+const CHIAVE_PROFILO = 'blindstep.profilo.v1';
+
+/** Pseudonimo opaco: nessun nome, nessuna email, niente da ricondurre. */
+function nuovoPseudonimo() {
+  const b = crypto.getRandomValues(new Uint8Array(2));
+  return `u-${[...b].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+}
+
+let IO = 'u-7f3a';
 
 /**
  * Cosa viene salvato sul dispositivo.
@@ -69,7 +85,11 @@ const stato = {
   scheda: 'oggi',
   fase: 'ricerca', // ricerca | match | luogo | attesa | serata | dopo
   adesso: new Date(INIZIO_SIMULAZIONE),
-  io: sampleProfile(IO),
+  io: null,
+  profilo: null,          // profilo costruito dall'utente
+  consensi: { compagno: false, affetto: false, giochi: false },
+  contattoFidato: '',
+  ob: null,               // compilazione in corso
   altro: null,
   valutazione: null,
   proposta: null,
@@ -86,6 +106,35 @@ const stato = {
   canale: null,
   avviso: null,
 };
+
+function salvaProfilo() {
+  try {
+    localStorage.setItem(CHIAVE_PROFILO, JSON.stringify({
+      profilo: stato.profilo,
+      consensi: stato.consensi,
+      contattoFidato: stato.contattoFidato,
+    }));
+  } catch { /* archiviazione negata: si prosegue senza ricordare */ }
+}
+
+function caricaProfilo() {
+  try {
+    const salvato = JSON.parse(localStorage.getItem(CHIAVE_PROFILO) ?? 'null');
+    if (!salvato?.profilo?.id) return false;
+    // Il profilo salvato passa dalle stesse regole di quello appena creato: se
+    // una versione precedente ne ha scritto uno non piu' valido, si ricomincia
+    // invece di trascinarsi dietro dati che il motore rifiuterebbe.
+    if (!validateProfile(salvato.profilo).valido) return false;
+    stato.profilo = salvato.profilo;
+    stato.consensi = { compagno: false, affetto: false, giochi: false, ...salvato.consensi };
+    stato.contattoFidato = salvato.contattoFidato ?? '';
+    stato.io = salvato.profilo;
+    IO = salvato.profilo.id;
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function salva() {
   try {
@@ -122,6 +171,13 @@ function ripristina() {
     Object.assign(decisioni, salvato.decisioni);
     if (decisioni.adesso) stato.adesso = new Date(decisioni.adesso);
     if (!cercaAbbinamento()) return false;
+    // Se il profilo è cambiato, l'abbinamento salvato può non essere più
+    // quello che il motore produce oggi: meglio ripartire puliti che mostrare
+    // una scheda che si riferisce a un'altra persona.
+    if (stato.altro.id !== decisioni.altroId) {
+      dimentica();
+      return false;
+    }
 
     if (decisioni.scelte.length) {
       stato.scelte = decisioni.scelte;
@@ -224,7 +280,9 @@ const bello = (tag) => String(tag).replace(/_/g, ' ');
 // ---------------------------------------------------------------------------
 
 function cercaAbbinamento() {
-  const candidati = Object.keys(SAMPLE_PROFILES).filter((id) => id !== IO).map(sampleProfile);
+  // I profili di esempio fanno da bacino: il mio e' quello costruito
+  // nell'onboarding, non uno di loro.
+  const candidati = Object.keys(SAMPLE_PROFILES).map(sampleProfile).filter((p) => p.id !== IO);
   const risultati = rankCandidates(stato.io, candidati, { adattiva: true, obiettivo: 1 });
   if (risultati.length === 0) return false;
 
@@ -254,11 +312,15 @@ function confermaLuogo() {
 }
 
 function avviaSerata() {
+  // I consensi sono quelli che l'utente ha dato davvero. L'altra persona, in
+  // una demo, dice di si': nella realta' sarebbe la sua risposta, e il motore
+  // spegne la funzione se manca anche uno solo dei due.
+  const mio = stato.consensi;
   stato.serata = createEvening(stato.card, {
     consensi: {
-      compagno: { [stato.io.id]: true, [stato.altro.id]: true },
-      affetto: { [stato.io.id]: true, [stato.altro.id]: true },
-      giochi: { [stato.io.id]: true, [stato.altro.id]: true },
+      compagno: { [stato.io.id]: mio.compagno, [stato.altro.id]: true },
+      affetto: { [stato.io.id]: mio.affetto, [stato.altro.id]: true },
+      giochi: { [stato.io.id]: mio.giochi, [stato.altro.id]: true },
     },
   });
   stato.secondi = 0;
@@ -691,6 +753,28 @@ function schermataProfilo() {
       </div>
 
       <div class="pannello ritardo-4">
+        <p class="occhiello muto">Cosa può fare l’app</p>
+        ${[
+          ['compagno', 'Il compagno di serata', 'ascolta e rilancia; l’audio non lascia il telefono'],
+          ['affetto', 'Momenti di affetto', 'proposte private, servono due sì'],
+          ['giochi', 'Giochi in due', 'solo nei momenti piatti'],
+        ].map(([id, titolo, nota]) => `
+          <button class="interruttore" data-azione="consenso-cambia" data-id="${id}"
+                  aria-pressed="${stato.consensi[id]}">
+            <span class="testi"><span class="t">${esc(titolo)}</span><span class="d">${esc(nota)}</span></span>
+            <span class="leva" aria-hidden="true"><span></span></span>
+          </button>`).join('')}
+        <p class="nota" style="margin-bottom:0">Sono tre cose separate: spegnerne una non tocca le altre. Il motore non accende niente senza il sì di entrambe le persone.</p>
+      </div>
+
+      ${stato.contattoFidato ? `<div class="pannello">
+        <p class="occhiello muto">Contatto fidato</p>
+        <div class="tappa" data-stato="fatto"><span class="cerchio">✓</span>
+          <div class="testi"><div class="q">${esc(stato.contattoFidato)}</div>
+          <div class="s">avvisato solo se sei tu a chiederlo</div></div></div>
+      </div>` : ''}
+
+      <div class="pannello">
         <p class="occhiello muto">Zona e spostamento</p>
         <div class="tappa" data-stato="fatto">
           <span class="cerchio">✓</span>
@@ -699,6 +783,10 @@ function schermataProfilo() {
             <div class="s">fino a ${p.maxTravelKm} km · mai mostrata a nessuno</div>
           </div>
         </div>
+      </div>
+
+      <div class="azioni">
+        <button class="btn fantasma" data-azione="rifai-profilo">Ricomincia il profilo</button>
       </div>
     </div>`;
 }
@@ -757,6 +845,18 @@ function schermataSicurezza() {
 // ---------------------------------------------------------------------------
 
 function render() {
+  // Finché il profilo non esiste c'è una cosa sola da fare: costruirlo. Niente
+  // schede, niente barra: un'app che mostra la navigazione prima di sapere chi
+  // sei promette funzioni che ancora non può mantenere.
+  if (!stato.profilo) {
+    $('#corpo').innerHTML = vistaOnboarding(stato.ob);
+    $('#barra').hidden = true;
+    collegaCampi();
+    aggiornaOrologio();
+    return;
+  }
+  $('#barra').hidden = false;
+
   const corpo =
     stato.scheda === 'oggi' ? schermataOggi() : stato.scheda === 'profilo' ? schermataProfilo() : schermataSicurezza();
 
@@ -767,9 +867,32 @@ function render() {
     b.setAttribute('aria-current', String(b.dataset.scheda === stato.scheda));
   }
 
+  aggiornaOrologio();
+}
+
+function aggiornaOrologio() {
   const data = stato.adesso.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
   const ora = stato.adesso.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
   $('#orologio').textContent = `${data} · ${ora}`;
+}
+
+/**
+ * I campi di testo dell'onboarding: si leggono mentre si scrive, senza
+ * ridisegnare la schermata a ogni lettera (perderebbe il cursore).
+ */
+function collegaCampi() {
+  const curiosita = $('#campo-curiosita');
+  if (curiosita) {
+    curiosita.addEventListener('input', () => {
+      stato.ob.dati.curiosita = curiosita.value;
+      const conta = $('#conta-curiosita');
+      if (conta) conta.textContent = String(curiosita.value.length);
+    });
+  }
+  const contatto = $('#campo-contatto');
+  if (contatto) {
+    contatto.addEventListener('input', () => { stato.ob.dati.contattoFidato = contatto.value; });
+  }
 }
 
 function avvisoHtml() {
@@ -785,6 +908,14 @@ document.addEventListener('click', (evento) => {
   if (scheda) {
     tocco();
     vai(() => { stato.scheda = scheda.dataset.scheda; });
+    return;
+  }
+
+  const sceltaOb = evento.target.closest('[data-ob]');
+  if (sceltaOb) {
+    tocco();
+    scegli(stato.ob, sceltaOb.dataset.ob, sceltaOb.dataset.valore);
+    render();
     return;
   }
 
@@ -805,6 +936,43 @@ document.addEventListener('click', (evento) => {
 
 function azione(nome, bottone) {
   switch (nome) {
+    case 'ob-avanti': {
+      const passo = PASSI[stato.ob.passo];
+      // La curiosità viene controllata con la stessa funzione che protegge le
+      // carte in Fase 3: qui l'utente può ancora correggerla.
+      if (passo === 'curiosita') {
+        const testo = stato.ob.dati.curiosita.trim();
+        const { pulito, motivo } = testo ? contieneContatti(testo) : { pulito: true };
+        stato.ob.erroreCuriosita = pulito ? null
+          : `Sembra contenere un ${motivo}. Questa riga la legge l’altra persona prima di incontrarti.`;
+        if (!pulito) break;
+      }
+      if (stato.ob.passo < PASSI.length - 1) {
+        stato.ob.passo += 1;
+        break;
+      }
+      concludiOnboarding();
+      break;
+    }
+
+    case 'ob-indietro':
+      stato.ob.erroreCuriosita = null;
+      stato.ob.passo = Math.max(0, stato.ob.passo - 1);
+      break;
+
+    case 'consenso-cambia': {
+      const quale = bottone.dataset.id;
+      stato.consensi[quale] = !stato.consensi[quale];
+      salvaProfilo();
+      break;
+    }
+
+    case 'rifai-profilo':
+      dimentica();
+      try { localStorage.removeItem(CHIAVE_PROFILO); } catch { /* niente */ }
+      location.reload();
+      return;
+
     case 'cerca':
       if (!cercaAbbinamento()) stato.avviso = 'Nessun abbinamento sopra soglia in questo momento.';
       break;
@@ -912,6 +1080,30 @@ function azione(nome, bottone) {
   render();
 }
 
+/** Chiude la compilazione: valida, salva, entra nell'app. */
+function concludiOnboarding() {
+  const id = nuovoPseudonimo();
+  const profilo = costruisciProfilo(stato.ob.dati, id);
+  const esito = validateProfile(profilo);
+
+  if (!esito.valido) {
+    // Non dovrebbe succedere, ma se succede si dice cosa manca invece di
+    // salvare un profilo che il motore rifiuterebbe a ogni ciclo.
+    stato.avviso = esito.errori[0];
+    stato.ob.passo = 1;
+    return;
+  }
+
+  IO = id;
+  stato.profilo = profilo;
+  stato.io = profilo;
+  stato.consensi = { ...stato.ob.dati.consensi };
+  stato.contattoFidato = stato.ob.dati.contattoFidato.trim();
+  stato.ob = null;
+  stato.scheda = 'oggi';
+  salvaProfilo();
+}
+
 // ---------------------------------------------------------------------------
 // Tasto Indietro di Android
 // ---------------------------------------------------------------------------
@@ -955,8 +1147,10 @@ $('#barra').innerHTML = [
   )
   .join('');
 
-if (ripristina()) {
-  stato.scheda = 'oggi';
+if (caricaProfilo()) {
+  if (ripristina()) stato.scheda = 'oggi';
+} else {
+  stato.ob = { passo: 0, dati: datiVuoti(), erroreCuriosita: null };
 }
 // Scorciatoia dalla home di Android: si apre direttamente sulla sicurezza.
 if (location.hash === '#sicurezza') stato.scheda = 'sicurezza';

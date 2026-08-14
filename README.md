@@ -560,6 +560,29 @@ bianca ha fallito proprio nel momento in cui serviva.
 Un **APK nativo** richiederebbe l'Android SDK, che non è installato in questo
 ambiente. La PWA è la strada che qui arriva davvero su un telefono.
 
+### Primo avvio
+
+L'onboarding non è un ornamento, e non l'ho aggiunto per completezza: senza,
+l'app **tradiva un principio del motore**. In `avviaSerata()` i consensi erano
+scritti a `true` — il motore ha cancelli separati per il compagno che ascolta,
+per i momenti di affetto e per i giochi, e l'interfaccia li scavalcava
+concedendo qualcosa che l'utente non aveva mai dato. Un'app che si autoconcede
+un consenso è peggio di una che non lo chiede: il codice attorno sembra
+prudente e non lo è.
+
+Sei passi: **cosa è BlindStep** (zero chat va spiegato *prima*, non scoperto al
+primo abbinamento — chi arriva da altre app cerca la casella dei messaggi e se
+non la trova pensa che sia rotta), quando sei libero, la zona di partenza, gli
+interessi, una curiosità, e i **tre consensi separati**, tutti spenti di
+partenza. Si cambiano quando si vuole dalla scheda Profilo.
+
+Il profilo costruito passa da `validateProfile()` del motore prima di essere
+salvato — le stesse regole dei test — e la curiosità dal controllo
+`contieneContatti()`: scrivendo "scrivimi su instagram" l'app rifiuta e spiega
+che quella riga la legge l'altra persona prima dell'incontro. Anche il profilo
+riletto all'avvio viene rivalidato: uno scritto da una versione precedente non
+si trascina dietro dati che il motore rifiuterebbe a ogni ciclo.
+
 ### Cosa fa da app vera, non da prototipo
 
 - **Non dimentica.** L'app sopravvive a un riavvio: se il telefono la chiude a
