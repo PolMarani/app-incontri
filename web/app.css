@@ -27,7 +27,7 @@
   --carta: #f4efe6;
   --carta-2: #cfc7ba;
   --tenue: #7d8794;
-  --tenue-2: #5b6672;
+  --tenue-2: #78838f;   /* alzato: a #5b6672 il contrasto sul fondo scuro non arrivava a 4.5:1 */
 
   /* Persone e stati */
   --tu: #e3a765;
@@ -299,7 +299,7 @@ p.testo.piccolo { font-size: 15px; }
 .opzione .riga-alta { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .opzione .tipo { font-size: 19px; letter-spacing: -0.01em; }
 .opzione .num { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; color: var(--tenue-2); text-transform: uppercase; }
-.opzione .atm { color: var(--carta-2); font-style: italic; font-size: 15px; margin: 8px 0 12px; }
+.opzione .atm { display: block; color: var(--carta-2); font-style: italic; font-size: 15px; margin: 8px 0 12px; }
 .opzione .meta { display: flex; flex-wrap: wrap; gap: 10px; font-family: var(--mono); font-size: 11px; color: var(--tenue); }
 .opzione .meta .viaggio { color: var(--candela); }
 .opzione .segno-scelta {
@@ -553,7 +553,9 @@ p.testo.piccolo { font-size: 15px; }
 .striscia-demo button {
   background: none; border: 1px solid rgba(227, 167, 101, 0.4); color: var(--candela);
   font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
-  padding: 4px 9px; border-radius: 100px; cursor: pointer;
+  padding: 4px 12px; border-radius: 100px; cursor: pointer;
+  /* Area di tocco piena anche se il comando resta visivamente minuto. */
+  min-height: 44px; display: inline-flex; align-items: center;
 }
 
 /* --- Debrief ------------------------------------------------------------- */
@@ -599,3 +601,22 @@ p.testo.piccolo { font-size: 15px; }
 /* Il numero dell'opzione sopra il tipo: prima erano sulla stessa riga e il
    numero spariva a destra del titolo. */
 .opzione .num { display: block; margin-bottom: 6px; }
+
+/* --- Accessibilità -------------------------------------------------------- */
+
+/* Il focus deve vedersi: qualcuno naviga con la tastiera esterna o con un
+   telecomando di accessibilità, e senza contorno l'app è inutilizzabile. */
+:focus-visible {
+  outline: 2px solid var(--candela);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Aree di tocco: sotto i 48 px si sbaglia, e qui si sbaglia al buio di un bar. */
+.barra button { min-height: 58px; }
+.voce-sos { min-height: 56px; }
+.opzione { min-height: 64px; }
+
+/* Testo selezionabile solo dove ha senso copiarlo: indirizzo e parola chiave. */
+body { -webkit-user-select: none; user-select: none; }
+.carta-chiara, .avviso { -webkit-user-select: text; user-select: text; }

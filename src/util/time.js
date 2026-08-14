@@ -151,11 +151,11 @@ export function toLocalDate(date) {
  */
 export function dayLabel(day) {
   return {
-    lun: 'Lunedi',
-    mar: 'Martedi',
-    mer: 'Mercoledi',
-    gio: 'Giovedi',
-    ven: 'Venerdi',
+    lun: 'Lunedì',
+    mar: 'Martedì',
+    mer: 'Mercoledì',
+    gio: 'Giovedì',
+    ven: 'Venerdì',
     sab: 'Sabato',
     dom: 'Domenica',
   }[day] ?? day;

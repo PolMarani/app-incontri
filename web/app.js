@@ -43,6 +43,28 @@ import { sampleProfile, SAMPLE_PROFILES } from '../src/data/sample-profiles.js';
 const IO = 'u-7f3a';
 const INIZIO_SIMULAZIONE = '2026-08-12T10:00:00+02:00';
 
+/**
+ * Cosa viene salvato sul dispositivo.
+ *
+ * Non si serializzano gli oggetti del motore - contengono funzioni e
+ * generatori - ma le **decisioni** prese dall'utente. Il motore è
+ * deterministico, quindi rigiocare le stesse decisioni ricostruisce
+ * esattamente lo stesso stato. È il modo più solido: se un giorno il motore
+ * cambia, lo stato salvato non diventa un fossile incoerente, viene
+ * semplicemente ricalcolato.
+ */
+const CHIAVE_SALVATAGGIO = 'blindstep.decisioni.v1';
+
+const decisioni = {
+  altroId: null,
+  scelte: [],
+  conferme: [],       // id dei checkpoint confermati
+  arrivato: false,
+  secondi: 0,
+  risposte: [],       // { propostaId, accetta }
+  adesso: null,
+};
+
 const stato = {
   scheda: 'oggi',
   fase: 'ricerca', // ricerca | match | luogo | attesa | serata | dopo
@@ -65,6 +87,83 @@ const stato = {
   avviso: null,
 };
 
+function salva() {
+  try {
+    decisioni.adesso = stato.adesso.toISOString();
+    decisioni.secondi = stato.secondi;
+    localStorage.setItem(CHIAVE_SALVATAGGIO, JSON.stringify({ fase: stato.fase, decisioni }));
+  } catch {
+    // Spazio esaurito o archiviazione negata: l'app continua a funzionare,
+    // semplicemente non ricorda. Non vale un messaggio di errore.
+  }
+}
+
+function dimentica() {
+  try {
+    localStorage.removeItem(CHIAVE_SALVATAGGIO);
+  } catch { /* niente da fare */ }
+}
+
+/**
+ * Rigioca le decisioni salvate. Ogni passaggio è lo stesso che farebbe
+ * l'utente toccando lo schermo, quindi non esiste una seconda strada che possa
+ * divergere da quella vera.
+ */
+function ripristina() {
+  let salvato;
+  try {
+    salvato = JSON.parse(localStorage.getItem(CHIAVE_SALVATAGGIO) ?? 'null');
+  } catch {
+    return false;
+  }
+  if (!salvato?.decisioni?.altroId) return false;
+
+  try {
+    Object.assign(decisioni, salvato.decisioni);
+    if (decisioni.adesso) stato.adesso = new Date(decisioni.adesso);
+    if (!cercaAbbinamento()) return false;
+
+    if (decisioni.scelte.length) {
+      stato.scelte = decisioni.scelte;
+      if (!confermaLuogo().ok) return false;
+    }
+    for (const id of decisioni.conferme) {
+      const cp = stato.piano?.checkpoints.find((c) => c.id === id);
+      if (!cp) continue;
+      const quando = new Date(cp.dueAt.getTime() + 60000);
+      confirmCheckpoint(stato.piano, IO, id, { now: quando });
+      confirmCheckpoint(stato.piano, stato.altro.id, id, { now: quando });
+    }
+    if (decisioni.arrivato) {
+      checkIn(stato.piano, IO, { now: stato.adesso });
+      checkIn(stato.piano, stato.altro.id, { now: stato.adesso });
+      avviaSerata();
+      rigiocaSerata(decisioni.secondi, decisioni.risposte);
+    }
+    if (salvato.fase === 'dopo' && stato.serata) concludiSerata();
+    return true;
+  } catch {
+    // Se il salvataggio appartiene a una versione precedente del motore, si
+    // riparte puliti invece di mostrare uno stato a metà.
+    dimentica();
+    return false;
+  }
+}
+
+/** Riesegue la serata fino al secondo salvato, applicando le stesse risposte. */
+function rigiocaSerata(finoA, risposte) {
+  const perProposta = new Map(risposte.map((r) => [r.propostaId, r.accetta]));
+  let guardia = 0;
+  while (stato.secondi < finoA && guardia++ < 400) {
+    passoSerata({ silenzioso: true });
+    if (stato.inCorso) {
+      const risposta = perProposta.get(stato.inCorso.proposta.id);
+      if (risposta === undefined) break;
+      applicaRisposta(risposta, { registra: false });
+    }
+  }
+}
+
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -75,14 +174,14 @@ const tocco = (ms = 8) => navigator.vibrate?.(ms);
 // ---------------------------------------------------------------------------
 
 const ICONE = {
-  oggi: '<svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a7 7 0 0 1 14 0c0 5.5-7 10-7 10Z"/><circle cx="12" cy="11" r="2.4"/></svg>',
-  profilo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.6-3.6 3.4-5.6 7-5.6s6.4 2 7 5.6"/></svg>',
-  scudo: '<svg viewBox="0 0 24 24"><path d="M12 3.5 20 7v5.4c0 4.4-3.2 7.6-8 8.6-4.8-1-8-4.2-8-8.6V7l8-3.5Z"/><path d="M12 9v4"/><circle cx="12" cy="16" r=".7" fill="currentColor"/></svg>',
-  uscita: '<svg viewBox="0 0 24 24"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 8 6 12l4 4"/><path d="M6 12h9"/></svg>',
-  staff: '<svg viewBox="0 0 24 24"><path d="M4 20c.6-3.4 3.2-5.2 6.5-5.2S16.4 16.6 17 20"/><circle cx="10.5" cy="8" r="3.2"/><path d="M17 5.5a3 3 0 0 1 0 6"/></svg>',
-  posizione: '<svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a7 7 0 0 1 14 0c0 5.5-7 10-7 10Z"/><circle cx="12" cy="11" r="2.4"/></svg>',
-  parla: '<svg viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg>',
-  emergenza: '<svg viewBox="0 0 24 24"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".7" fill="currentColor"/></svg>',
+  oggi: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-7-4.5-7-10a7 7 0 0 1 14 0c0 5.5-7 10-7 10Z"/><circle cx="12" cy="11" r="2.4"/></svg>',
+  profilo: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.6-3.6 3.4-5.6 7-5.6s6.4 2 7 5.6"/></svg>',
+  scudo: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3.5 20 7v5.4c0 4.4-3.2 7.6-8 8.6-4.8-1-8-4.2-8-8.6V7l8-3.5Z"/><path d="M12 9v4"/><circle cx="12" cy="16" r=".7" fill="currentColor"/></svg>',
+  uscita: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 8 6 12l4 4"/><path d="M6 12h9"/></svg>',
+  staff: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 20c.6-3.4 3.2-5.2 6.5-5.2S16.4 16.6 17 20"/><circle cx="10.5" cy="8" r="3.2"/><path d="M17 5.5a3 3 0 0 1 0 6"/></svg>',
+  posizione: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-7-4.5-7-10a7 7 0 0 1 14 0c0 5.5-7 10-7 10Z"/><circle cx="12" cy="11" r="2.4"/></svg>',
+  parla: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg>',
+  emergenza: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".7" fill="currentColor"/></svg>',
 };
 
 const ICONA_SOS = {
@@ -130,6 +229,7 @@ function cercaAbbinamento() {
   if (risultati.length === 0) return false;
 
   stato.altro = risultati[0].candidate;
+  decisioni.altroId = stato.altro.id;
   stato.valutazione = risultati[0].evaluation;
   stato.proposta = proposeLocations(stato.io, stato.altro, stato.valutazione);
   stato.fase = 'match';
@@ -175,7 +275,7 @@ function clima(minuti) {
   return { energia: 0.26, silenzioSec: 24, risate: 0, quotaParlato: 0.5 };
 }
 
-function passoSerata() {
+function passoSerata(opzioni = {}) {
   if (stato.inCorso) return;
   stato.secondi += 60;
   const minuti = stato.secondi / 60;
@@ -188,7 +288,10 @@ function passoSerata() {
 
   if (minuti >= 100 || stato.inCorso) fermaOrologio();
   if (minuti >= 100) concludiSerata();
-  render();
+  if (!opzioni.silenzioso) {
+    salva();
+    render();
+  }
 }
 
 function avviaOrologio() {
@@ -198,6 +301,33 @@ function avviaOrologio() {
 function fermaOrologio() {
   clearInterval(stato.timer);
   stato.timer = null;
+}
+
+/**
+ * Applica la risposta alla proposta aperta. Usata sia dal tocco dell'utente sia
+ * dal rigioco dopo un riavvio: una strada sola, quindi non possono divergere.
+ */
+function applicaRisposta(accetta, opzioni = {}) {
+  const a = stato.inCorso;
+  if (!a) return;
+  const t = stato.secondi + 20;
+
+  if (a.fonte === 'affetto') {
+    rispondiAffetto(stato.serata, a.proposta.id, IO, { accetta, t });
+    rispondiAffetto(stato.serata, a.proposta.id, stato.altro.id, { accetta: true, t });
+  } else {
+    rispondiGioco(stato.serata, a.proposta.id, IO, { accetta, t });
+    if (accetta) {
+      rispondiGioco(stato.serata, a.proposta.id, stato.altro.id, { accetta: true, t });
+      chiudiGioco(stato.serata, a.proposta.id, { t: t + a.proposta.schermata.durataMin * 60 });
+      stato.secondi += a.proposta.schermata.durataMin * 60;
+    }
+  }
+  if (opzioni.registra !== false) {
+    decisioni.risposte.push({ propostaId: a.proposta.id, accetta });
+    salva();
+  }
+  stato.inCorso = null;
 }
 
 function concludiSerata() {
@@ -314,11 +444,12 @@ function vistaLuogo() {
           const deciso = stato.scelte.length > 0;
           return `
         <button class="opzione ritardo-${Math.min(i + 1, 4)}" data-opzione="${o.optionId}"
+                aria-pressed="${scelto}"
                 data-scelta="${scelto ? 'si' : deciso ? 'no' : ''}">
           <span class="segno-scelta">${scelto ? stato.scelte.indexOf(o.optionId) + 1 : ''}</span>
           <span class="num">${esc(o.etichetta)}</span>
           <span class="riga-alta"><span class="tipo">${esc(o.tipo)}</span></span>
-          <p class="atm">${esc(o.atmosfera)}</p>
+          <span class="atm">${esc(o.atmosfera)}</span>
           <span class="meta">
             <span class="viaggio">${esc(o.dal_tuo_punto_di_partenza)}</span>
             <span>rumore ${esc(o.rumore)}</span>
@@ -642,7 +773,7 @@ function render() {
 }
 
 function avvisoHtml() {
-  return `<div class="avviso">${esc(stato.avviso)}</div>`;
+  return `<div class="avviso" role="status" aria-live="polite">${esc(stato.avviso)}</div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -652,9 +783,8 @@ function avvisoHtml() {
 document.addEventListener('click', (evento) => {
   const scheda = evento.target.closest('.barra button');
   if (scheda) {
-    stato.scheda = scheda.dataset.scheda;
     tocco();
-    render();
+    vai(() => { stato.scheda = scheda.dataset.scheda; });
     return;
   }
 
@@ -685,7 +815,8 @@ function azione(nome, bottone) {
 
     case 'conferma-luogo': {
       const esito = confermaLuogo();
-      if (!esito.ok) {
+      if (esito.ok) decisioni.scelte = [...stato.scelte];
+      else {
         stato.avviso = `${esito.motivo}. Si rilancia con altri tre locali.`;
         stato.scelte = [];
       }
@@ -700,6 +831,7 @@ function azione(nome, bottone) {
       stato.adesso = new Date(cp.dueAt.getTime() + 60000);
       confirmCheckpoint(stato.piano, IO, cp.id, { now: stato.adesso });
       confirmCheckpoint(stato.piano, stato.altro.id, cp.id, { now: stato.adesso });
+      if (!decisioni.conferme.includes(cp.id)) decisioni.conferme.push(cp.id);
       break;
     }
 
@@ -707,6 +839,7 @@ function azione(nome, bottone) {
       stato.adesso = new Date(new Date(stato.card.quando.inizio).getTime() - 5 * 60000);
       checkIn(stato.piano, IO, { now: stato.adesso });
       checkIn(stato.piano, stato.altro.id, { now: stato.adesso });
+      decisioni.arrivato = true;
       avviaSerata();
       break;
 
@@ -719,25 +852,10 @@ function azione(nome, bottone) {
       break;
 
     case 'accetta':
-    case 'rifiuta': {
-      const accetta = nome === 'accetta';
-      const a = stato.inCorso;
-      const t = stato.secondi + 20;
-      if (a.fonte === 'affetto') {
-        rispondiAffetto(stato.serata, a.proposta.id, IO, { accetta, t });
-        rispondiAffetto(stato.serata, a.proposta.id, stato.altro.id, { accetta: true, t });
-      } else {
-        rispondiGioco(stato.serata, a.proposta.id, IO, { accetta, t });
-        if (accetta) {
-          rispondiGioco(stato.serata, a.proposta.id, stato.altro.id, { accetta: true, t });
-          chiudiGioco(stato.serata, a.proposta.id, { t: t + a.proposta.schermata.durataMin * 60 });
-          stato.secondi += a.proposta.schermata.durataMin * 60;
-        }
-      }
-      stato.inCorso = null;
+    case 'rifiuta':
+      applicaRisposta(nome === 'accetta');
       avviaOrologio();
       break;
-    }
 
     case 'chiudi-serata':
       concludiSerata();
@@ -769,6 +887,11 @@ function azione(nome, bottone) {
 
     case 'ricomincia':
       fermaOrologio();
+      dimentica();
+      Object.assign(decisioni, {
+        altroId: null, scelte: [], conferme: [], arrivato: false,
+        secondi: 0, risposte: [], adesso: null,
+      });
       Object.assign(stato, {
         fase: 'ricerca',
         adesso: new Date(INIZIO_SIMULAZIONE),
@@ -785,8 +908,37 @@ function azione(nome, bottone) {
     default:
       break;
   }
+  salva();
   render();
 }
+
+// ---------------------------------------------------------------------------
+// Tasto Indietro di Android
+// ---------------------------------------------------------------------------
+
+/**
+ * In una PWA a schermo intero il tasto Indietro del telefono chiude l'app.
+ * Sembra un dettaglio e invece è il modo più rapido di far perdere una serata a
+ * qualcuno: si preme per tornare alla schermata prima e ci si ritrova fuori.
+ * Qui ogni spostamento lascia una voce nella cronologia, e Indietro torna dove
+ * ci si aspetta.
+ */
+function vai(cambia) {
+  cambia();
+  history.pushState({ scheda: stato.scheda, fase: stato.fase }, '');
+  salva();
+  render();
+}
+
+window.addEventListener('popstate', (evento) => {
+  const dove = evento.state;
+  if (!dove) return;
+  // Si torna indietro solo dove ha senso: le fasi già superate non si
+  // riaprono, perché una conferma data non si può ritirare con un gesto.
+  if (dove.scheda !== stato.scheda) stato.scheda = dove.scheda;
+  else if (stato.fase === 'luogo' && dove.fase === 'match') stato.fase = 'match';
+  render();
+});
 
 // ---------------------------------------------------------------------------
 // Avvio
@@ -799,12 +951,18 @@ $('#barra').innerHTML = [
 ]
   .map(
     ([id, testo, icona]) =>
-      `<button data-scheda="${id}" class="${id === 'sicurezza' ? 'sos' : ''}">${icona}<span>${testo}</span></button>`,
+      `<button data-scheda="${id}" class="${id === 'sicurezza' ? 'sos' : ''}" aria-label="${testo}">${icona}<span>${testo}</span></button>`,
   )
   .join('');
 
+if (ripristina()) {
+  stato.scheda = 'oggi';
+}
+// Scorciatoia dalla home di Android: si apre direttamente sulla sicurezza.
+if (location.hash === '#sicurezza') stato.scheda = 'sicurezza';
+history.replaceState({ scheda: stato.scheda, fase: stato.fase }, '');
 render();
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/web/sw.js').catch(() => {});
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
 }

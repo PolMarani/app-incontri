@@ -25,7 +25,13 @@ const TIPI = {
 
 const server = createServer(async (req, res) => {
   const percorso = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
-  const relativo = percorso === '/' ? 'web/index.html' : normalize(percorso).replace(/^(\.\.[/\\])+/, '');
+  // Il service worker va servito dalla radice: uno script in /web/ ha scope
+  // /web/ e non controllerebbe la pagina aperta su /, quindi l'app sembrerebbe
+  // installabile e offline senza esserlo davvero.
+  const relativo =
+    percorso === '/' ? 'web/index.html'
+    : percorso === '/sw.js' ? 'web/sw.js'
+    : normalize(percorso).replace(/^(\.\.[/\\])+/, '');
   const file = join(RADICE, relativo);
 
   // Nessun accesso fuori dalla radice del repository.

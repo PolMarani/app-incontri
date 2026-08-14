@@ -49,7 +49,7 @@ test('la scheda contiene luogo e orario esatti', () => {
 
 test('la data cade davvero nel giorno della settimana indicato', () => {
   const { card } = scheda();
-  const giorni = ['Domenica', 'Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato'];
+  const giorni = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
   assert.equal(giorni[new Date(card.quando.inizio).getDay()], card.quando.giorno);
 });
 
@@ -243,7 +243,7 @@ test('la data della scheda e quella locale, anche a cavallo della mezzanotte', (
   const card = buildEventCard(a, b, evaluateMatch(a, b), notturno, { now: NOW });
 
   const inizio = new Date(card.quando.inizio);
-  const giorni = ['Domenica', 'Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato'];
+  const giorni = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
   assert.equal(card.quando.giorno, 'Sabato');
   assert.equal(giorni[inizio.getDay()], card.quando.giorno);
   // La data stampata deve coincidere con il giorno indicato.

@@ -560,6 +560,33 @@ bianca ha fallito proprio nel momento in cui serviva.
 Un **APK nativo** richiederebbe l'Android SDK, che non è installato in questo
 ambiente. La PWA è la strada che qui arriva davvero su un telefono.
 
+### Cosa fa da app vera, non da prototipo
+
+- **Non dimentica.** L'app sopravvive a un riavvio: se il telefono la chiude a
+  metà serata, la ritrovi allo stesso minuto. Non si serializzano gli oggetti
+  del motore — contengono funzioni e generatori — ma le **decisioni** prese;
+  il motore è deterministico, quindi rigiocarle ricostruisce esattamente lo
+  stesso stato. Se un giorno il motore cambia, lo stato salvato non diventa un
+  fossile incoerente: viene ricalcolato.
+- **Il tasto Indietro di Android non chiude l'app.** In una PWA a schermo
+  intero è il comportamento predefinito, e sembra un dettaglio finché non fa
+  perdere una serata a qualcuno: si preme per tornare alla schermata prima e ci
+  si ritrova fuori. Ogni spostamento lascia una voce nella cronologia. Le fasi
+  già superate però non si riaprono: una conferma data non si ritira con un
+  gesto.
+- **Funziona davvero offline.** Il service worker è servito dalla radice, non
+  da `/web/`: uno script in una sottocartella ha scope limitato a quella e non
+  controllerebbe la pagina — l'app sembrerebbe installabile e offline senza
+  esserlo. Verificato staccando la rete: la pagina si apre e il motore calcola
+  un match sul dispositivo.
+- **Accessibilità:** focus visibile per chi naviga da tastiera, avvisi
+  annunciati (`role="status"`), stato delle opzioni esposto con `aria-pressed`,
+  icone fuori dall'albero di accessibilità, aree di tocco tutte sopra i 44 px
+  (al buio di un bar si sbaglia) e contrasto del testo secondario alzato fino a
+  superare 4.5:1.
+- **Scorciatoia sulla home:** tenendo premuta l'icona, Android apre
+  direttamente la scheda Sicurezza.
+
 ### Scelte di interfaccia
 
 - **Non sembra un'app di incontri.** Niente bianco, niente rosa, niente volti:

@@ -6,10 +6,11 @@
  * punto mostra una pagina bianca ha fallito proprio nel momento in cui serviva.
  */
 
-const CACHE = 'blindstep-v1';
+const CACHE = 'blindstep-v2';
 
 /** Tutto cio' che serve per partire: pagina, stile, app e ogni modulo del motore. */
 const RISORSE = [
+  '/',
   '/web/index.html',
   '/web/app.css',
   '/web/app.js',
@@ -71,7 +72,7 @@ self.addEventListener('fetch', (evento) => {
             caches.open(CACHE).then((c) => c.put(evento.request, copia));
             return risposta;
           })
-          .catch(() => caches.match('/web/index.html')),
+          .catch(() => caches.match('/')),
     ),
   );
 });
